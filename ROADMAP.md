@@ -26,11 +26,18 @@ Everything below is in 1.3.0 except the update check.
 - **Depth v1.0.2** by Yat Fung Leung (MIT licence). Spreads selected 2D layers into 3D depth for a parallax look: picks a camera lens (15–200 mm), spaces layers along Z, scales each one so it still looks the same size through the camera, and can add a Camera Controller null. A second button moves layers relative to an existing camera. Idea for SuperV: a **Depth** tile built our own way (no alert pop-ups, one undo step, works with the SuperV status bar). If any of its code is reused, its MIT notice must be kept.
 - **TextPlugin.jsxbin**. Compiled ExtendScript (about 3 MB), so its code cannot be read. Not decompiled; we will use its features as reference once VisHnu lists or screenshots the ones he likes.
 
+- **Easify 2 Pro 2.5.0** by Leyero (commercial, aescripts; signed extension for After Effects and Premiere). Only its panel layout and labels were read for feature ideas; its code is not used. What it offers: a custom curve editor (draw your own bezier ease) and a Math mode with In and Out presets (Sine, Quad, Cubic, Quart, Quint, Expo, Circ, Back, Elastic, Bounce); apply to keys **between** selected keyframes, **all** keys, or the motion **path**; an interval for baking extra keyframes; Bounce settings (count, first and last bounce %, custom peaks) and Elastic settings (strength, frequency, length, phase, decay) with a live chart; copy, paste and remove easing; favourite presets; zoom on the graph; plus licence, update check and support pages. Idea for SuperV: an **Ease** tile of our own (see plan below).
+
 ## Since 1.3.0 (in code, not packaged yet)
 - Preset preview tiles fixed (letters no longer stack one per line).
 - Shapes and Colour tools removed from the panel.
 - Compact tiles: 62 px high, five per row in wide panels.
 - **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
+
+## Planned next (not built)
+- **Ease** tile (inspired by Easify, our own design): one-click In, Out and In-Out with a strength slider; named curves (Sine to Expo) as AE bezier eases; Bounce and Elastic after the last keyframe as editable expressions (no extra keys) or baked keys; copy, paste and reset easing; a small live curve preview; favourite presets.
+- **Depth** tile (inspired by Depth v1.0.2): spread 2D layers in Z with size compensation and an optional camera rig.
+- Features from TextPlugin once VisHnu lists them.
 
 ## Done in 1.2.2
 - Crop Comp Fast mode (layer bounds, no rendering) as default; Exact mode in batches at half size, cancellable.
