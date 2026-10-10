@@ -88,6 +88,7 @@
     root.querySelector('.drawer').classList.toggle('has-tool', !!tool);
     state.ui[section] = tool; save();
     if (tool === 'animate') playPreview();
+    if (tool === 'ease') drawEase();
   }
 
   /* ---------- Tool arguments ---------- */
@@ -98,6 +99,7 @@
       case 'copyKeys': case 'pasteKeys': return { expressions: checked('keys-expressions'), offset: value('keys-offset') };
       case 'loop': return { direction: value('loop-direction'), type: value('loop-type'), count: n('loop-count'), replace: checked('loop-replace') };
       case 'wiggle': return { amount: n('wiggle-pixels'), frequency: n('wiggle-speed'), replace: checked('wiggle-replace') };
+      case 'ease': return { curve: easeEffective(), mode: segValue('ease-mode'), linear: easeFamily === 'linear' };
       case 'spin': return { mode: segValue('spin-mode'), speed: n('spin-speed'), radius: n('spin-radius'), direction: segValue('spin-direction'), replace: checked('spin-replace') };
       case 'counter': return { from: n('counter-from'), to: n('counter-to'), duration: n('counter-duration'), decimals: n('counter-decimals'), prefix: value('counter-prefix'), suffix: value('counter-suffix'), separator: checked('counter-separator'), first: checked('counter-separator') ? n('counter-first') : 3, every: checked('counter-separator') ? n('counter-every') : 3, replace: checked('counter-replace') };
       case 'text': case 'textPreview': return textOptions();
@@ -117,6 +119,68 @@
       var o = toolArgs('counter');
       $('counter-preview').textContent = [o.from, o.to].map(function (v) { return VKFormatNumber(v, o.decimals, o.separator, o.first, o.every, o.prefix, o.suffix); }).join('  →  ');
     } catch (e) { $('counter-preview').textContent = 'Check the number settings'; }
+  }
+
+
+  /* ---------- Ease curve editor ---------- */
+  var EASES = {
+    sine: { in: [0.12, 0, 0.39, 0], out: [0.61, 1, 0.88, 1], inout: [0.37, 0, 0.63, 1] },
+    quad: { in: [0.11, 0, 0.5, 0], out: [0.5, 1, 0.89, 1], inout: [0.45, 0, 0.55, 1] },
+    cubic: { in: [0.32, 0, 0.67, 0], out: [0.33, 1, 0.68, 1], inout: [0.65, 0, 0.35, 1] },
+    quart: { in: [0.5, 0, 0.75, 0], out: [0.25, 1, 0.5, 1], inout: [0.76, 0, 0.24, 1] },
+    quint: { in: [0.64, 0, 0.78, 0], out: [0.22, 1, 0.36, 1], inout: [0.83, 0, 0.17, 1] },
+    expo: { in: [0.7, 0, 0.84, 0], out: [0.16, 1, 0.3, 1], inout: [0.87, 0, 0.13, 1] },
+    circ: { in: [0.55, 0, 1, 0.45], out: [0, 0.55, 0.45, 1], inout: [0.85, 0, 0.15, 1] },
+    back: { in: [0.36, 0, 0.66, -0.56], out: [0.34, 1.64, 0.64, 1], inout: [0.68, -0.6, 0.32, 1.6] }
+  };
+  var LINEAR = [1 / 3, 1 / 3, 2 / 3, 2 / 3], easeBase = EASES.cubic.inout.slice(), easeFamily = 'cubic', easeAnim = null;
+  function round2(v) { return Math.round(v * 100) / 100; }
+  function easeStrength() { return Number($('ease-strength').value) / 100; }
+  function easeEffective() {
+    if (easeFamily === 'linear') return LINEAR.slice();
+    var k = easeStrength(); return easeBase.map(function (v, i) { return round2(LINEAR[i] + (v - LINEAR[i]) * k); });
+  }
+  function gx(x) { return 20 + x * 200; } function gy(y) { return 170 - y * 120; }
+  function drawEase() {
+    var c = easeEffective(), x1 = gx(c[0]), y1 = gy(c[1]), x2 = gx(c[2]), y2 = gy(c[3]);
+    $('eg-curve').setAttribute('d', 'M20 170 C' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' 220 50');
+    [['eg-l1', 20, 170, x1, y1], ['eg-l2', 220, 50, x2, y2]].forEach(function (l) { var e = $(l[0]); e.setAttribute('x1', l[1]); e.setAttribute('y1', l[2]); e.setAttribute('x2', l[3]); e.setAttribute('y2', l[4]); });
+    $('eg-h1').setAttribute('cx', x1); $('eg-h1').setAttribute('cy', y1); $('eg-h2').setAttribute('cx', x2); $('eg-h2').setAttribute('cy', y2);
+    $('ease-values').value = c.join(', ');
+    $('ease-strength-val').textContent = easeFamily === 'linear' ? '' : $('ease-strength').value + '%';
+    all('#ease-family button').forEach(function (b) { b.classList.toggle('on', b.dataset.value === easeFamily); });
+    if (easeAnim) easeAnim.cancel();
+    var track = document.querySelector('.ease-track');
+    if (track && track.offsetWidth) easeAnim = $('ease-ball').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(' + (track.offsetWidth - 14) + 'px)' }], { duration: 1100, iterations: Infinity, direction: 'alternate', easing: 'cubic-bezier(' + c.join(',') + ')', delay: 150, endDelay: 250 });
+    state.ui.ease = { base: easeBase, family: easeFamily, strength: $('ease-strength').value }; save();
+  }
+  function pickEasePreset() { if (easeFamily !== 'linear') easeBase = EASES[easeFamily][segValue('ease-dir')].slice(); drawEase(); }
+  function setCustom(c) { easeBase = c; easeFamily = 'custom'; $('ease-strength').value = 100; drawEase(); }
+  function initEase() {
+    var saved = state.ui.ease;
+    if (saved && Array.isArray(saved.base) && saved.base.length === 4) { easeBase = saved.base; easeFamily = saved.family || 'custom'; $('ease-strength').value = saved.strength || 100; }
+    var svg = $('ease-graph'), dragging = null;
+    function toGraph(e) { var pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; var q = pt.matrixTransform(svg.getScreenCTM().inverse()); return [Math.max(0, Math.min(1, (q.x - 20) / 200)), Math.max(-0.6, Math.min(1.6, (170 - q.y) / 120))]; }
+    ['eg-h1', 'eg-h2'].forEach(function (id, which) {
+      var h = $(id);
+      h.addEventListener('pointerdown', function (e) { dragging = which; h.classList.add('dragging'); h.setPointerCapture(e.pointerId); e.preventDefault(); });
+      h.addEventListener('pointermove', function (e) { if (dragging !== which) return; var c = easeEffective(), g = toGraph(e); c[which * 2] = round2(g[0]); c[which * 2 + 1] = round2(g[1]); setCustom(c); });
+      h.addEventListener('pointerup', function () { dragging = null; h.classList.remove('dragging'); });
+      h.addEventListener('keydown', function (e) {
+        var c = easeEffective(), step = e.shiftKey ? 0.1 : 0.01, i = which * 2, moved = true;
+        if (e.key === 'ArrowLeft') c[i] = Math.max(0, round2(c[i] - step)); else if (e.key === 'ArrowRight') c[i] = Math.min(1, round2(c[i] + step));
+        else if (e.key === 'ArrowUp') c[i + 1] = round2(c[i + 1] + step); else if (e.key === 'ArrowDown') c[i + 1] = round2(c[i + 1] - step); else moved = false;
+        if (moved) { e.preventDefault(); setCustom(c); }
+      });
+    });
+    all('#ease-family button').forEach(function (b) { b.onclick = function () { easeFamily = b.dataset.value; pickEasePreset(); }; });
+    all('#ease-dir button').forEach(function (b) { b.onclick = function () { setSeg('ease-dir', b.dataset.value); if (easeFamily === 'custom') easeFamily = 'cubic'; pickEasePreset(); }; });
+    $('ease-strength').addEventListener('input', drawEase);
+    $('ease-values').addEventListener('change', function () {
+      var v = this.value.split(/[\s,]+/).filter(Boolean).map(Number);
+      if (v.length !== 4 || v.some(function (x) { return !Number.isFinite(x); }) || v[0] < 0 || v[0] > 1 || v[2] < 0 || v[2] > 1) { status('Enter four numbers, for example 0.65, 0, 0.35, 1. The first and third must be between 0 and 1.', 'error'); drawEase(); return; }
+      setCustom(v.map(round2));
+    });
   }
 
   /* ---------- Text animation previews ---------- */
@@ -252,7 +316,7 @@
 
   /* ---------- Start up ---------- */
   load();
-  renderCategories(); renderPresets(); counterPreview(); updateDependents();
+  renderCategories(); renderPresets(); counterPreview(); updateDependents(); initEase();
   if (node) { try { path = node('path'); fs = node('fs'); extensionRoot = isAE ? decodeURI(cep.getSystemPath('extension')) : path.dirname(decodeURI(location.pathname).replace(/^\/(\w:)/, '$1')); extensionRoot = extensionRoot.replace(/^file:\/\/\//, ''); encoder = node(path.join(extensionRoot, 'js', 'encoder.cjs')); } catch (e) { status('Encoder module: ' + e.message, 'error'); } }
   try { if (isAE) extensionRoot = decodeURI(cep.getSystemPath('extension')).replace(/^file:\/\/\//, ''); connection = window.VKBridge.create(cep, extensionRoot); } catch (e) { status('Connection setup: ' + e.message, 'error'); }
   if (!isAE) $('preview-notice').hidden = false;
@@ -262,7 +326,7 @@
   $('settings-toggle').onclick = function () { showTab($('settings').classList.contains('active') ? state.ui.tab : 'settings'); };
   $('settings-back').onclick = function () { showTab(state.ui.tab); };
   all('.tile').forEach(function (t) { t.onclick = function () { openTool(t.closest('.tab').id, t.dataset.tool); }; });
-  all('.seg, .chips:not(#text-cats)').forEach(function (s) { all('button', s).forEach(function (b) { b.onclick = function () { setSeg(s.id, b.dataset.value); if (s.id === 'text-direction') playPreview(); }; }); });
+  all('.seg:not(#ease-dir), .chips:not(#text-cats):not(#ease-family)').forEach(function (s) { all('button', s).forEach(function (b) { b.onclick = function () { setSeg(s.id, b.dataset.value); if (s.id === 'text-direction') playPreview(); }; }); });
 
   all('[data-action]').forEach(function (b) {
     b.onclick = async function () {

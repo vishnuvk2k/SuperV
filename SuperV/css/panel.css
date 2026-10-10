@@ -109,6 +109,22 @@ button:focus-visible,.tile:focus-visible,input:focus-visible,select:focus-visibl
 .counter-preview{padding:12px;border-radius:8px;background:var(--field);border:1px solid var(--line-soft);text-align:center}
 .counter-preview output{display:block;font-size:20px;font-weight:600;color:#53adff;overflow-wrap:anywhere}
 
+/* Ease */
+.ease-graph-wrap{background:var(--field);border:1px solid var(--line-soft);border-radius:8px;padding:8px 8px 12px;display:flex;flex-direction:column;gap:8px;align-items:center}
+#ease-graph{width:100%;max-width:300px;height:auto;touch-action:none;user-select:none;overflow:visible}
+#ease-graph .eg-box{fill:none;stroke:#2f2f35;stroke-width:1}
+#ease-graph .eg-diag{stroke:#3a3a40;stroke-width:1;stroke-dasharray:4 4}
+#ease-graph .eg-arm{stroke:#8a8a94;stroke-width:1.2}
+#ease-graph .eg-curve{fill:none;stroke:var(--blue);stroke-width:3;stroke-linecap:round}
+#ease-graph .eg-end{fill:#ececee}
+#ease-graph .eg-handle{fill:#101012;stroke:#ececee;stroke-width:2;cursor:grab}
+#ease-graph .eg-handle:hover,#ease-graph .eg-handle.dragging{stroke:var(--blue);fill:#0f2a47}
+#ease-graph .eg-handle:focus{outline:none;stroke:var(--blue)}
+.ease-track{position:relative;width:100%;max-width:300px;height:14px;border-radius:7px;background:#232327}
+.ease-track i{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--blue)}
+input[type=range]{width:100%;height:20px;padding:0;background:none;border:0;accent-color:var(--blue)}
+#ease-strength-val{color:var(--text);margin-left:4px}
+
 /* GIF */
 .export-stage{height:120px;border-radius:8px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font:700 26px Helvetica,Arial,sans-serif}
 .export-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
