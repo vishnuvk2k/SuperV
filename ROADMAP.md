@@ -52,7 +52,7 @@ Limit: AE easing between two keys has two handles, so Bounce and Elastic use con
 Spread 2D layers along Z with size compensation, lens choice and an optional camera rig; move layers relative to an existing camera.
 
 ### From TextPlugin
-Waiting for the list or screenshots of the features VisHnu likes.
+Dropped at VisHnu's request.
 
 ## Done in 1.2.2
 - Crop Comp Fast mode (layer bounds, no rendering) as default; Exact mode in batches at half size, cancellable.
