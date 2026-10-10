@@ -1,4 +1,12 @@
-# SuperV 1.2.1 validation
+# SuperV 1.2.2 validation
+
+## 1.2.2 changes
+
+- Crop Comp: new Fast mode (layer bounds, no rendering) as default; Exact mode renders in batches of 8 at half size with 20 ms file polling and a Cancel button; GIF rendering can now be cancelled too.
+- Interrupted renders no longer block later Crop/GIF runs; leftover temporary render comps are removed.
+- Fast crop checked in a simulated property model (moving, hidden, parented layers). Not yet verified in native After Effects.
+
+## 1.2.1
 
 ## Completed for this build
 

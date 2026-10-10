@@ -111,7 +111,7 @@ function waitForPNG(filename, timeout) {
       try {
         if (completePNG(filename)) return resolve(filename);
         if (Date.now() >= deadline) return reject(new Error('AE did not finish writing a PNG. Enable Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network. Check for an AE render error. Missing/incomplete frame: ' + filename));
-        setTimeout(poll, 80);
+        setTimeout(poll, 20);
       } catch (e) { reject(e); }
     }
     poll();

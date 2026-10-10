@@ -1,4 +1,4 @@
-# SuperV 1.2.1
+# SuperV 1.2.2
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
 
@@ -55,7 +55,7 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 ## Other tools retained
 
 - **Null:** Comp centre or unparented 2D selection centre, with optional parenting.
-- **Crop Comp:** Removes transparent rendered borders, with padding. Full Animation measures every frame; Current Frame/Work Area may crop artwork visible at other times. An opaque full-comp background prevents cropping. Supports 2D comps; precompose 3D artwork first. Duration and key times stay unchanged. Coordinate-dependent expressions and certain parent expressions require baking/precomposing. Full animation can take time and disk space.
+- **Crop Comp:** Removes transparent borders, with padding. **Fast** (default) measures each visible layer's box over the range in about a second, without rendering. Effects that draw outside a layer (glow, shadow) and precomp/alpha-footage content are measured by their box, so the panel warns you to add padding or use Exact. **Exact** renders frames at half size in batches and reads real pixels; it can be cancelled. An opaque full-comp background prevents cropping. Supports 2D comps; precompose 3D artwork first. Duration and key times stay unchanged. Coordinate-dependent expressions and certain parent expressions require baking/precomposing.
 - **True Comp Duplicator:** Opens your supplied v3.9.14 script. Select project comps and use its original controls. Its code and credits are retained.
 - **Copy/Paste Keys:** Select keyframe diamonds on one source layer. Copies values, timing, easing and supported spatial data. Matching target properties/effects must exist. Matching-time keys are replaced. Optional expressions are copied verbatim. Clipboard lasts until the AE host reloads.
 - **Loop:** IN/OUT/both and cycle, ping-pong, offset or continue. Select numeric properties with at least two keys. Zero intervals uses all keys.

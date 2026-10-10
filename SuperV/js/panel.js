@@ -4,7 +4,7 @@
   var cep = window.__adobe_cep__, isAE = !!cep, node = window.cep_node && window.cep_node.require ? window.cep_node.require : (typeof require === 'function' ? require : null);
   var defaults = { recentColours: ['#0080FF', '#6577F3', '#F3A4AD', '#FFE181'], pinnedColours: [], encoder: '' };
   var presetList = VKText.presets;
-  var state, preset = 'slide', encoder = null, path = null, fs = null, extensionRoot = '', videoPath = '', outputPath = '', exportJob = null, busy = false, previewAnimations = [], previewTimer;
+  var cancelRender = false, state, preset = 'slide', encoder = null, path = null, fs = null, extensionRoot = '', videoPath = '', outputPath = '', exportJob = null, busy = false, previewAnimations = [], previewTimer;
   try {
     var configRequest=new XMLHttpRequest();configRequest.open('GET','config/defaults.json',false);configRequest.send();
     var config=JSON.parse(configRequest.responseText);
@@ -31,7 +31,7 @@
   function n(id){var e=$(id);if(!e.checkValidity())throw new Error('Check '+id.replace(/-/g,' ')+'. '+e.validationMessage);var x=Number(e.value);if(!Number.isFinite(x))throw new Error('Enter a number.');return x;}
   var connection;
   function bridge(action, args) {
-    if(!connection)return Promise.reject(new Error('The AE connection could not be initialized. Reinstall the complete 1.2.1 package.'));
+    if(!connection)return Promise.reject(new Error('The AE connection could not be initialized. Reinstall the complete 1.2.2 package.'));
     return connection.call(action,args);
   }
   function setBusy(v){busy=v;document.querySelectorAll('[data-action],#export-gif,#sample-colour,#apply-hex').forEach(function(b){b.disabled=v;});}
@@ -39,7 +39,7 @@
   function tab(id){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id===id);});document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.tab===id);});if(id==='text')playPreview();}
   function textOptions(){return {preset:preset,duration:n('text-duration'),stagger:n('text-stagger'),by:VKText.get(preset).by||value('text-by'),direction:value('text-direction')};}
   function toolArgs(action){switch(action){
-    case 'crop':return {scope:value('crop-scope'),range:value('crop-range'),padding:n('crop-padding')};
+    case 'crop':return {mode:value('crop-mode'),scope:value('crop-scope'),range:value('crop-range'),padding:n('crop-padding')};
     case 'null':return {position:value('null-position'),parent:checked('null-parent')};
     case 'copyKeys':case 'pasteKeys':return {expressions:checked('keys-expressions'),offset:value('keys-offset')};
     case 'loop':return {direction:value('loop-direction'),type:value('loop-type'),count:n('loop-count'),replace:checked('replace-expression')};
@@ -126,7 +126,7 @@
       options.output=dest.path;
       if(value('gif-source')==='comp'){
         temp=encoder.makeTemp();status('Rendering PNG frames in AE. Press ESC in AE to cancel.');
-        var rendered=await renderVerified({purpose:'gif',directory:temp,range:value('gif-range'),fps:options.fps});
+        var rendered=await renderVerified({purpose:'gif',directory:temp,range:value('gif-range'),fps:options.fps},'cancel-export');
         var sequence=encoder.validateSequence(temp,rendered.frames);
         options.input=sequence.input;options.sequence=true;
       }else{options.input=videoPath;options.sequence=false;}
@@ -138,17 +138,21 @@
       $('gif-preview').src=url+'?v='+Date.now();$('gif-preview').hidden=false;status('GIF exported · '+outputPath,'success');
     }catch(e){status(e.message,'error');}finally{exportJob=null;$('cancel-export').hidden=true;setBusy(false);if(temp)try{encoder.cleanup(temp);}catch(e){status('Export finished; temporary PNGs remain at '+temp+'. '+e.message,'error');}}
   }
-  async function renderVerified(options){
-    var session=await bridge('renderBegin',options),success=false;
+  async function renderVerified(options,cancelButton){
+    var session=await bridge('renderBegin',options),success=false;cancelRender=false;
+    if(cancelButton)$(cancelButton).hidden=false;
     try{
-      for(var i=0;i<session.frames;i++){
+      for(var i=0;i<session.frames;){
+        if(cancelRender)throw new Error('Cancelled. Nothing was changed.');
         status('Rendering PNG '+(i+1)+' / '+session.frames+'…');
-        var frame=await bridge('renderFrame',{token:session.token,index:i});
-        await encoder.waitForPNG(frame.path);
+        var batch=await bridge('renderFrame',{token:session.token,index:i,count:8});
+        var paths=batch.paths||[batch.path];
+        for(var k=0;k<paths.length;k++)await encoder.waitForPNG(paths[k]);
+        i+=paths.length;
       }
       encoder.validateSequence(options.directory,session.frames);
       success=true;return session;
-    }finally{await bridge('renderFinish',{token:session.token,success:success});}
+    }finally{if(cancelButton)$(cancelButton).hidden=true;await bridge('renderFinish',{token:session.token,success:success});}
   }
   function showColour(hex){
     $('colour-hex').value=hex.toUpperCase();$('new-colour').value=hex.toLowerCase();
@@ -164,14 +168,23 @@
     if(busy)return;
     var temp=null;
     try{
-      if(!encoder)throw new Error('Open the extension inside After Effects. Crop uses the included encoder.');
       var options=toolArgs('crop');setBusy(true);
+      if(options.mode!=='exact'){
+        status('Measuring layer bounds…');
+        var fast=await bridge('cropFast',options);
+        status(fast.message,'success');return;
+      }
+      if(!encoder)throw new Error('Open the extension inside After Effects. Exact crop uses the included encoder.');
       await encoder.testEncoder(executable());temp=encoder.makeTemp();
-      status('Measuring artwork. AE is rendering '+(options.range==='current'?'the current frame':'each frame in the range')+'…');
-      var measurement=await renderVerified({purpose:'crop',scope:options.scope,range:options.range,directory:temp});
+      status('Measuring artwork. AE is rendering '+(options.range==='current'?'the current frame':'each frame in the range')+' at half size…');
+      var measurement=await renderVerified({purpose:'crop',scope:options.scope,range:options.range,directory:temp,scale:2},'crop-cancel');
       var sequence=encoder.validateSequence(temp,measurement.frames);
       status('Reading rendered transparency…');
-      var bounds=await encoder.alphaBounds(executable(),sequence,function(frame,total){status('Measuring transparency · '+frame+' / '+total+' frames');});
+      var b=await encoder.alphaBounds(executable(),sequence,function(frame,total){status('Measuring transparency · '+frame+' / '+total+' frames');});
+      // Scale half-size measurements back to comp pixels, with one pixel of safety at each edge.
+      var rx=measurement.width/sequence.width,ry=measurement.height/sequence.height,extra=rx>1||ry>1?1:0;
+      var bounds={left:Math.max(0,Math.floor(b.left*rx)-extra),top:Math.max(0,Math.floor(b.top*ry)-extra),right:Math.min(measurement.width,Math.ceil(b.right*rx)+extra),bottom:Math.min(measurement.height,Math.ceil(b.bottom*ry)+extra)};
+      bounds.left=Math.min(bounds.left,measurement.width-1);bounds.top=Math.min(bounds.top,measurement.height-1);
       var result=await bridge('cropApply',Object.assign({},bounds,{token:measurement.token,padding:options.padding}));
       status(result.message,'success');
     }catch(e){status(e.message,'error');}
@@ -185,9 +198,9 @@
   }catch(e){status('Connection setup: '+e.message,'error');}
   $('reconnect').onclick=async function(){
     if(busy||!connection)return;setBusy(true);status('Connecting to After Effects…');
-    try{var r=await connection.reconnect();status('SuperV 1.2.1 · '+r.message,'success');}catch(e){status(e.message,'error');}finally{setBusy(false);}
+    try{var r=await connection.reconnect();status('SuperV 1.2.2 · '+r.message,'success');}catch(e){status(e.message,'error');}finally{setBusy(false);}
   };
-  if(!isAE)$('preview-notice').hidden=false;else bridge('ping').then(function(r){status('SuperV 1.2.1 · '+r.message,'success');}).catch(function(e){status(e.message,'error');});
+  if(!isAE)$('preview-notice').hidden=false;else bridge('ping').then(function(r){status('SuperV 1.2.2 · '+r.message,'success');}).catch(function(e){status(e.message,'error');});
   document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){tab(b.dataset.tab);};});
   $('settings-toggle').onclick=function(){tab($('settings').classList.contains('active')?'tools':'settings');};
   document.querySelectorAll('[data-action]').forEach(function(b){b.onclick=async function(){try{var action=b.dataset.action;if(action==='crop'){await cropComp();return;}var r=await run(action==='null'?'nullTool':action,toolArgs(action));if(action==='copyKeys'&&r)$('clipboard-info').textContent=r.message;}catch(e){status(e.message,'error');}};});
@@ -213,7 +226,8 @@
   $('pick-encoder').onclick=async function(){var r=await run('pickFile',{title:'Choose ffmpeg.exe'});if(r&&r.path){state.encoder=r.path;$('encoder-path').value=r.path;save();}};
   $('encoder-path').onchange=function(){state.encoder=this.value.trim();save();};
   $('test-encoder').onclick=async function(){try{if(!encoder)throw new Error('Open the panel inside After Effects.');status('Testing encoder…');status(await encoder.testEncoder(executable()),'success');}catch(e){status(e.message,'error');}};
-  $('export-gif').onclick=exportGIF;$('cancel-export').onclick=function(){if(exportJob)exportJob.cancel();};
+  $('export-gif').onclick=exportGIF;$('cancel-export').onclick=function(){cancelRender=true;if(exportJob)exportJob.cancel();};
+  $('crop-cancel').onclick=function(){cancelRender=true;status('Cancelling after the current frames…');};
   $('show-output').onclick=function(){if(outputPath&&node)node('child_process').execFile('explorer.exe',['/select,',outputPath],{windowsHide:true},function(){});};
   $('reset-settings').onclick=function(){localStorage.removeItem('vk.gsd.settings.v1');location.reload();};
   document.querySelectorAll('input,select').forEach(function(el){if(!el.id||el.id==='encoder-path'||el.id==='tool-search'||el.id==='new-colour'||el.id==='text-category')return;el.addEventListener('change',function(){state.fields[el.id]=el.type==='checkbox'?el.checked:el.value;save();});});

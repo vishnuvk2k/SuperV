@@ -76,7 +76,9 @@ function VKFeatures(h) {
         return {positions:jobs,anchors:uses};
     }
     function renderBegin(o) {
-        if(renderState)h.fail('A frame render is already running. Finish or cancel it first.');
+        // The panel serializes commands, so any state left here belongs to an interrupted session.
+        if(renderState){try{if(isValid(renderState.comp))renderState.comp.remove();}catch(ignore){}renderState=null;}
+        for(var leftover=app.project.numItems;leftover>=1;leftover--){var it=app.project.item(leftover);if(it instanceof CompItem&&it.comment.indexOf('VK TEMP RENDER')===0)it.remove();}
         var c=h.comp(),crop=o.purpose==='crop',selected=c.selectedLayers,indices=[],i;
         if(crop){pendingCrop=null;cropPreflight(c);}
         if(crop && o.scope==='selection' && !selected.length)h.fail('Select the layers whose artwork should define the crop.');
@@ -92,7 +94,7 @@ function VKFeatures(h) {
         if(!dir.exists && !dir.create())h.fail('Cannot create the temporary render folder.');
         var copy=null;
         try{
-            copy=c.duplicate();copy.name=c.name;copy.comment='VK TEMP RENDER — removed when this operation finishes';copy.resolutionFactor=[1,1];
+            copy=c.duplicate();copy.name=c.name;copy.comment='VK TEMP RENDER — removed when this operation finishes';var factor=crop&&o.scale===2&&c.width>=64&&c.height>=64?2:1;copy.resolutionFactor=[factor,factor];
             if(crop && o.scope==='selection'){
                 for(i=1;i<=copy.numLayers;i++){copy.layer(i).locked=false;copy.layer(i).solo=false;}
                 for(i=0;i<indices.length;i++)copy.layer(indices[i]).solo=true;
@@ -106,11 +108,14 @@ function VKFeatures(h) {
         var state=renderState;
         if(!state || state.token!==o.token || o.index!==state.index)h.fail('The frame render request is out of sequence. Retry the operation.');
         if(state.index>=state.frames)h.fail('All frames have already been requested.');
-        var file=new File(state.directory+'/frame_'+('000000'+state.index).slice(-6)+'.png');
-        state.comp.saveFrameToPng(Math.min(state.start+state.index/state.fps,state.comp.duration-state.comp.frameDuration/100),file);
-        state.index++;
-        // Return to AE's event loop. The CEP side waits for the PNG IEND chunk.
-        return {path:file.fsName};
+        var count=Math.max(1,Math.min(Math.floor(Number(o.count)||1),24,state.frames-state.index)),paths=[];
+        for(var n=0;n<count;n++){
+            var file=new File(state.directory+'/frame_'+('000000'+state.index).slice(-6)+'.png');
+            state.comp.saveFrameToPng(Math.min(state.start+state.index/state.fps,state.comp.duration-state.comp.frameDuration/100),file);
+            paths.push(file.fsName);state.index++;
+        }
+        // Return to AE's event loop. The CEP side waits for each PNG IEND chunk.
+        return {path:paths[0],paths:paths};
     }
     function renderFinish(o){
         if(!renderState || renderState.token!==o.token)return {message:'Render session already closed.'};
@@ -143,25 +148,83 @@ function VKFeatures(h) {
             }
         } finally {job.layer.locked=locked;}
     }
-    function cropApply(o) {
-        if(!pendingCrop || pendingCrop.token!==o.token)h.fail('Crop measurement expired. Run CROP COMP again.');
-        var c=pendingCrop.comp;
-        if(!isValid(c) || c.width!==pendingCrop.width || c.height!==pendingCrop.height || c.numLayers!==pendingCrop.layers)h.fail('The composition changed during measurement. Run CROP COMP again.');
+    function applyCrop(c,o) {
         var pad=Math.round(h.num(o.padding,0,2000));
         var x=Math.max(0,Math.floor(h.num(o.left,0,c.width-1))-pad),y=Math.max(0,Math.floor(h.num(o.top,0,c.height-1))-pad);
         var right=Math.min(c.width,Math.ceil(h.num(o.right,1,c.width))+pad),bottom=Math.min(c.height,Math.ceil(h.num(o.bottom,1,c.height))+pad);
         var w=Math.max(4,right-x),height=Math.max(4,bottom-y);
         x=Math.min(x,c.width-w);y=Math.min(y,c.height-height);
         var jobs=cropPreflight(c),i;
-        if(w===c.width && height===c.height){pendingCrop=null;return {message:'No empty border to crop. An opaque background fills the composition.'};}
+        if(w===c.width && height===c.height)return {message:'No empty border to crop. The artwork already fills the composition.',width:w,height:height};
         var changes=[];
         for(i=0;i<jobs.positions.length;i++)changes.push(prepareShift(jobs.positions[i],x,y));
         for(i=0;i<jobs.anchors.length;i++)changes.push(prepareShift(jobs.anchors[i],x,y));
         c.width=w;c.height=height;
         // AE can adjust default source anchors during resize. Restore the exact planned values afterwards.
         for(i=0;i<changes.length;i++)applyShift(changes[i]);
-        pendingCrop=null;
         return {message:'Cropped to '+w+' × '+height+' px. Duration and keyframe times are unchanged.',width:w,height:height};
+    }
+    function cropApply(o) {
+        if(!pendingCrop || pendingCrop.token!==o.token)h.fail('Crop measurement expired. Run CROP COMP again.');
+        var c=pendingCrop.comp;
+        if(!isValid(c) || c.width!==pendingCrop.width || c.height!==pendingCrop.height || c.numLayers!==pendingCrop.layers)h.fail('The composition changed during measurement. Run CROP COMP again.');
+        pendingCrop=null;
+        return applyCrop(c,o);
+    }
+    function measuredLayers(c,scope) {
+        var ids=[],selected={},anySolo=false,effects=0,boxed=0,i,j,l;
+        if(scope==='selection'){var s=c.selectedLayers;if(!s.length)h.fail('Select the layers whose artwork should define the crop.');for(i=0;i<s.length;i++)selected[s[i].index]=true;}
+        for(i=1;i<=c.numLayers;i++)if(c.layer(i).solo)anySolo=true;
+        for(i=1;i<=c.numLayers;i++){
+            l=c.layer(i);
+            if(!(l instanceof AVLayer))continue;
+            if(scope==='selection'){if(!selected[i])continue;}
+            else if(!l.enabled||(anySolo&&!l.solo))continue;
+            if(!l.hasVideo||l.adjustmentLayer||l.guideLayer||l.nullLayer)continue;
+            try{if(l.isTrackMatte&&scope!=='selection')continue;}catch(ignore){}
+            ids.push(i);
+            var fx=l.property('ADBE Effect Parade');
+            for(j=1;fx&&j<=fx.numProperties;j++)if(fx.property(j).enabled){effects++;break;}
+            try{if(l.source instanceof CompItem||(l.source&&l.source.mainSource&&l.source.mainSource.hasAlpha))boxed++;}catch(ignore2){}
+        }
+        return {ids:ids,effects:effects,boxed:boxed};
+    }
+    // Fast crop: union of every measured layer's box over time. No rendering.
+    function cropFast(o) {
+        var c=h.comp(),info,start,total,fps=c.frameRate,i;
+        cropPreflight(c);info=measuredLayers(c,o.scope);
+        if(!info.ids.length)h.fail('No visible layers to measure. Nothing was cropped.');
+        if(o.range==='comp'){start=0;total=Math.max(1,Math.ceil(c.duration*fps-0.0001));}
+        else if(o.range==='current'){start=c.time;total=1;}
+        else{start=c.workAreaStart;total=Math.max(1,Math.ceil(c.workAreaDuration*fps-0.0001));}
+        if(total>18000)h.fail('The range exceeds 18,000 frames. Choose a shorter range.');
+        var selected=[];for(i=0;i<c.selectedLayers.length;i++)selected.push(c.selectedLayers[i].index);
+        var corner=function(which){return 'var ids=['+info.ids.join(',')+'],lo=[1e9,1e9],hi=[-1e9,-1e9];\n'+
+            'for(var i=0;i<ids.length;i++){var L=thisComp.layer(ids[i]),a=Math.min(L.inPoint,L.outPoint),b=Math.max(L.inPoint,L.outPoint);if(time<a||time>=b)continue;'+
+            'var r=L.sourceRectAtTime(time,true);if(!(r.width>0&&r.height>0))continue;var xs=[r.left,r.left+r.width],ys=[r.top,r.top+r.height];'+
+            'for(var u=0;u<2;u++)for(var v=0;v<2;v++){var p=L.toComp([xs[u],ys[v]]);lo=[Math.min(lo[0],p[0]),Math.min(lo[1],p[1])];hi=[Math.max(hi[0],p[0]),Math.max(hi[1],p[1])];}}\n'+which+';';};
+        var probe=null,x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+        try{
+            probe=c.layers.addNull(c.duration);probe.name='SuperV crop probe';probe.moveToEnd();probe.enabled=false;
+            var fxp=probe.property('ADBE Effect Parade');fxp.addProperty('ADBE Point Control');fxp.addProperty('ADBE Point Control');
+            var pa=fxp.property(1).property(1),pb=fxp.property(2).property(1);
+            pa.expression=corner('lo');pb.expression=corner('hi');
+            if(pa.expressionError||pb.expressionError)h.fail('Could not measure layer bounds: '+(pa.expressionError||pb.expressionError));
+            for(i=0;i<total;i++){
+                var t=total===1&&o.range==='current'?start:Math.min(start+i/fps,c.duration-c.frameDuration/100);
+                var lo=pa.valueAtTime(t,false),hi=pb.valueAtTime(t,false);
+                if(hi[0]<=lo[0]||hi[1]<=lo[1])continue;
+                if(lo[0]<x0)x0=lo[0];if(lo[1]<y0)y0=lo[1];if(hi[0]>x1)x1=hi[0];if(hi[1]>y1)y1=hi[1];
+                if(x0<=0&&y0<=0&&x1>=c.width&&y1>=c.height)break;
+            }
+        }finally{if(probe&&isValid(probe))probe.remove();for(i=0;i<selected.length;i++)try{c.layer(selected[i]).selected=true;}catch(ignore){}}
+        if(!(x1>x0&&y1>y0))h.fail('The selected range has no visible artwork. Nothing was cropped.');
+        var bounds={left:Math.max(0,Math.min(c.width-1,Math.floor(x0))),top:Math.max(0,Math.min(c.height-1,Math.floor(y0))),right:Math.max(1,Math.min(c.width,Math.ceil(x1))),bottom:Math.max(1,Math.min(c.height,Math.ceil(y1))),padding:o.padding};
+        var result=applyCrop(c,bounds),notes=[];
+        if(info.effects)notes.push(info.effects+' layer'+(info.effects>1?'s have':' has')+' effects that may draw outside its box (glow, shadow). Add padding or use EXACT.');
+        if(info.boxed)notes.push(info.boxed+' precomp/alpha footage layer'+(info.boxed>1?'s are':' is')+' measured by full size. Use EXACT for a tighter crop.');
+        if(notes.length)result.message+='\n'+notes.join('\n');
+        return result;
     }
     function colourTargets(c) {
         var selected=h.props(c), result=[],i;
@@ -219,5 +282,5 @@ function VKFeatures(h) {
         $.evalFile(f);
         return {message:'True Comp Duplicator opened. Select compositions in the Project panel and use its DUPLICATE button.'};
     }
-    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,colour:colour,colourWatch:colourWatch,duplicateExternal:duplicateExternal};
+    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,colour:colour,colourWatch:colourWatch,duplicateExternal:duplicateExternal};
 }
