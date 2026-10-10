@@ -1,0 +1,163 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const childProcess = require('child_process');
+
+function number(v, min, max, name) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < min || n > max) throw new Error(name + ' must be between ' + min + ' and ' + max + '.');
+  return n;
+}
+function buildArgs(o) {
+  const width = Math.round(number(o.width, 16, 4096, 'Width'));
+  const fps = number(o.fps, 1, 50, 'FPS');
+  const colours = number(o.colours, 4, 256, 'Colours');
+  const threshold = number(o.threshold, 0, 255, 'Alpha threshold');
+  const loops = number(o.loop, -1, 65535, 'Loop count');
+  if (!['rgb', 'rgba', 'alpha'].includes(o.channels)) throw new Error('Invalid channels.');
+  if (!['none', 'bayer', 'sierra2_4a'].includes(o.dither)) throw new Error('Invalid dithering.');
+  if (!/^#[0-9a-f]{6}$/i.test(o.background)) throw new Error('Invalid background colour.');
+  const args = ['-hide_banner', '-nostdin', '-y'];
+  if (o.sequence) args.push('-framerate', String(fps), '-start_number', '0');
+  args.push('-i', o.input);
+  let graph = '[0:v]fps=' + fps + ':round=up,scale=' + width + ':-1:flags=lanczos,setsar=1,format=rgba';
+  if (o.channels === 'alpha') {
+    graph += ',alphaextract[clean];';
+  } else if (o.channels === 'rgb') {
+    const rgb = [1, 3, 5].map(i => parseInt(o.background.slice(i, i + 2), 16));
+    graph += ',split[fg][bg];[bg]lutrgb=r=' + rgb[0] + ':g=' + rgb[1] + ':b=' + rgb[2] + ',lut=a=255[base];[base][fg]overlay=shortest=1:format=auto,format=rgb24[clean];';
+  } else {
+    graph += '[clean];';
+  }
+  graph += '[clean]split[palin][pixels];[palin]palettegen=max_colors=' + colours + ':reserve_transparent=' + (o.channels === 'rgba' ? '1' : '0') + '[palette];[pixels][palette]paletteuse=dither=' + o.dither + ':alpha_threshold=' + threshold + '[gif]';
+  args.push('-filter_complex', graph, '-map', '[gif]', '-an', '-loop', String(loops), '-progress', 'pipe:1', '-f', 'gif', o.output);
+  return args;
+}
+function testEncoder(executable) {
+  return new Promise((resolve, reject) => {
+    childProcess.execFile(executable, ['-version'], { windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 }, (err, stdout) => {
+      if (err) return reject(new Error('Cannot run FFmpeg. Choose a working ffmpeg.exe in SETTINGS. ' + err.message));
+      if (!/^ffmpeg version/m.test(stdout)) return reject(new Error('The selected executable is not FFmpeg.'));
+      resolve(stdout.split(/\r?\n/)[0]);
+    });
+  });
+}
+function makeTemp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'vk-gif-')); }
+function cleanup(dir) {
+  if (!dir) return;
+  const resolved = path.resolve(dir), parent = path.resolve(os.tmpdir());
+  if (path.dirname(resolved).toLowerCase() !== parent.toLowerCase() || !/^vk-gif-[a-z0-9]+$/i.test(path.basename(resolved))) throw new Error('Invalid temporary directory.');
+  // Remove only files we created, never recursively follow another directory.
+  fs.readdirSync(resolved).forEach(name => {
+    if (/^frame_\d{6}\.png$/.test(name) && fs.lstatSync(path.join(resolved, name)).isFile()) fs.unlinkSync(path.join(resolved, name));
+  });
+  fs.rmdirSync(resolved);
+}
+function encode(executable, options, onProgress) {
+  const token = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  const temporaryOutput = options.output + '.vk-' + token + '.gif';
+  const args = buildArgs(Object.assign({}, options, { output: temporaryOutput }));
+  let child, cancelled = false;
+  const promise = new Promise((resolve, reject) => {
+    let stderr = '', ended = false;
+    function finish(err) {
+      if (ended) return; ended = true;
+      if (err) { try { fs.unlinkSync(temporaryOutput); } catch (_) {} reject(err); return; }
+      try {
+        // Rename only after a successful complete encode; never erase an existing file on failure.
+        if (fs.statSync(temporaryOutput).size === 0) throw new Error('No frames were encoded. Choose a longer source or higher frame rate.');
+        fs.renameSync(temporaryOutput, options.output);
+        resolve({ path: options.output, bytes: fs.statSync(options.output).size });
+      } catch (e) { try { fs.unlinkSync(temporaryOutput); } catch (_) {} reject(e); }
+    }
+    try { child = childProcess.spawn(executable, args, { windowsHide: true, shell: false }); }
+    catch (e) { finish(e); return; }
+    child.stdout.on('data', chunk => { if (onProgress) onProgress(String(chunk)); });
+    child.stderr.on('data', chunk => { stderr = (stderr + String(chunk)).slice(-6000); });
+    child.on('error', finish);
+    child.on('close', code => finish(cancelled ? new Error('Encoding cancelled.') : code !== 0 ? new Error('FFmpeg failed: ' + stderr.slice(-1800)) : null));
+  });
+  return { promise, cancel: () => { cancelled = true; if (child) child.kill(); } };
+}
+function completePNG(filename) {
+  let fd;
+  try {
+    fd = fs.openSync(filename, 'r');
+    const size = fs.fstatSync(fd).size;
+    if (size < 45) return false;
+    const sig = Buffer.alloc(8), head = Buffer.alloc(8);
+    if (fs.readSync(fd, sig, 0, 8, 0) !== 8 || sig.toString('hex') !== '89504e470d0a1a0a') return false;
+    let offset = 8, seenData = false;
+    while (offset + 12 <= size) {
+      if (fs.readSync(fd, head, 0, 8, offset) !== 8) return false;
+      const length = head.readUInt32BE(0), type = head.toString('ascii', 4, 8);
+      if (offset === 8 && (type !== 'IHDR' || length !== 13)) return false;
+      if (offset + length + 12 > size) return false;
+      if (type === 'IDAT') seenData = true;
+      if (type === 'IEND') return length === 0 && seenData && offset + 12 === size;
+      offset += length + 12;
+    }
+    return false;
+  } catch (e) {
+    if (e.code === 'ENOENT' || e.code === 'EBUSY' || e.code === 'EACCES') return false;
+    throw e;
+  } finally { if (fd !== undefined) fs.closeSync(fd); }
+}
+function waitForPNG(filename, timeout) {
+  const deadline = Date.now() + (timeout || 120000);
+  return new Promise((resolve, reject) => {
+    function poll() {
+      try {
+        if (completePNG(filename)) return resolve(filename);
+        if (Date.now() >= deadline) return reject(new Error('AE did not finish writing a PNG. Enable Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network. Check for an AE render error. Missing/incomplete frame: ' + filename));
+        setTimeout(poll, 80);
+      } catch (e) { reject(e); }
+    }
+    poll();
+  });
+}
+function validateSequence(directory, expected) {
+  const count = Math.floor(number(expected, 1, 18000, 'Frame count'));
+  let width = 0, height = 0;
+  for (let i = 0; i < count; i++) {
+    const filename = path.join(directory, 'frame_' + String(i).padStart(6, '0') + '.png');
+    if (!completePNG(filename)) throw new Error('AE render is incomplete: missing or unfinished frame ' + i + '. ' + filename);
+    const fd = fs.openSync(filename, 'r'), header = Buffer.alloc(26);
+    try {
+      if (fs.readSync(fd, header, 0, 26, 0) !== 26 || header.slice(0, 8).toString('hex') !== '89504e470d0a1a0a') throw new Error('AE produced an invalid PNG: ' + filename);
+    } finally { fs.closeSync(fd); }
+    const w = header.readUInt32BE(16), h = header.readUInt32BE(20);
+    if (!w || !h || (i && (w !== width || h !== height))) throw new Error('Rendered frames have inconsistent dimensions.');
+    width = w; height = h;
+  }
+  return { input: path.join(directory, 'frame_%06d.png'), sequence: true, frames: count, width, height };
+}
+function alphaBounds(executable, sequence, onProgress) {
+  const size = sequence.width * sequence.height;
+  return new Promise((resolve, reject) => {
+    const args = ['-hide_banner', '-nostdin', '-framerate', '1', '-start_number', '0', '-i', sequence.input,
+      '-frames:v', String(sequence.frames), '-vf', 'alphaextract', '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'gray', 'pipe:1'];
+    const child = childProcess.spawn(executable, args, { windowsHide: true, shell: false });
+    let offset = 0, left = sequence.width, top = sequence.height, right = -1, bottom = -1, stderr = '', reported = 0;
+    child.stdout.on('data', chunk => {
+      for (let i = 0; i < chunk.length; i++, offset++) {
+        if (!chunk[i]) continue;
+        const pixel = offset % size, x = pixel % sequence.width, y = Math.floor(pixel / sequence.width);
+        if (x < left) left = x; if (x > right) right = x;
+        if (y < top) top = y; if (y > bottom) bottom = y;
+      }
+      const frame = Math.floor(offset / size);
+      if (frame !== reported && onProgress) { reported = frame; onProgress(frame, sequence.frames); }
+    });
+    child.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-2500); });
+    child.on('error', reject);
+    child.on('close', code => {
+      if (code !== 0) return reject(new Error('Could not measure rendered transparency: ' + stderr));
+      if (offset !== size * sequence.frames) return reject(new Error('Crop measurement did not read every rendered frame.'));
+      if (right < left) return reject(new Error('The selected range has no visible artwork. Nothing was cropped.'));
+      resolve({ left, top, right: right + 1, bottom: bottom + 1 });
+    });
+  });
+}
+module.exports = { buildArgs, testEncoder, makeTemp, cleanup, encode, validateSequence, alphaBounds, completePNG, waitForPNG };

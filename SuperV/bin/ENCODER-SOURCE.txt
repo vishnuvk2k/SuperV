@@ -1,0 +1,4 @@
+Downloaded from https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+FFmpeg source: https://ffmpeg.org/download.html
+Build source and configuration: https://www.gyan.dev/ffmpeg/builds/
+Download archive: C:\Users\user\AppData\Local\Temp\vk-ffmpeg-download-4ba31937da204a85b43a09d5e2eeefff\ffmpeg.zip
