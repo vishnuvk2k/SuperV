@@ -138,9 +138,26 @@ input[type=range]{width:100%;height:20px;padding:0;background:none;border:0;acce
 /* Settings */
 .settings-head{display:flex;align-items:center;gap:6px;margin:2px 0 10px}
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
-#about p{margin:0;color:var(--muted);font-size:12px}
-#about .about-name{font:italic 900 20px/1 "Arial Black","Segoe UI",sans-serif;color:var(--text);margin-bottom:4px}
-#about .about-credits{font-size:11px;color:var(--faint)}
+#about{gap:12px}
+.about-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#about .about-name{margin:0;font:italic 900 22px/1 "Arial Black","Segoe UI",sans-serif;letter-spacing:-1px;color:var(--text)}
+#about .about-tag{margin:3px 0 0;font-size:11.5px;color:var(--muted)}
+.about-ver{font-size:11px;color:var(--muted);background:var(--field);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.status-list{display:flex;flex-direction:column;gap:1px;background:var(--field);border:1px solid var(--line-soft);border-radius:8px;overflow:hidden}
+.status-row{display:flex;align-items:center;gap:9px;padding:8px 10px;font-size:11.5px}
+.status-row+.status-row{border-top:1px solid var(--line-soft)}
+.led{width:7px;height:7px;border-radius:50%;background:#55555c;flex-shrink:0}
+.led.on{background:var(--ok)}.led.off{background:var(--err)}.led.warn{background:#e8a33d}
+.status-what{color:var(--muted);width:92px;flex-shrink:0}
+.status-val{color:var(--text);overflow-wrap:anywhere}
+.about-more{border:1px solid var(--line-soft);border-radius:8px;background:var(--field);padding:8px 10px}
+.about-more summary{cursor:pointer;font-size:12px;color:var(--text);list-style:none}
+.about-more summary::-webkit-details-marker{display:none}
+.about-more summary::after{content:"+";float:right;color:var(--muted)}
+.about-more[open] summary::after{content:"\2212"}
+.about-more ul{margin:8px 0 2px;padding-left:16px;color:var(--muted);font-size:11.5px;line-height:1.65}
+.about-more code{background:#2a2a30;border-radius:3px;padding:0 4px;font-size:11px}
+#about .about-credits{margin:0;font-size:11px;line-height:1.6;color:var(--faint)}
 
 /* Status bar */
 #statusbar{flex-shrink:0;display:flex;align-items:flex-start;gap:8px;padding:9px 14px;border-top:1px solid var(--line-soft);background:#18181a;font-size:11.5px;color:var(--muted);max-height:72px;overflow:auto}

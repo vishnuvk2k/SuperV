@@ -14,7 +14,8 @@
   } catch (_) { /* Built-in defaults also support browser previews with local-file restrictions. */ }
 
   /* ---------- Status, settings ---------- */
-  function status(message, kind) { $('status').textContent = String(message); $('statusbar').className = kind || ''; }
+  var lastError = '', aeVersion = '';
+  function status(message, kind) { if (kind === 'error') lastError = String(message); $('status').textContent = String(message); $('statusbar').className = kind || ''; }
   function save() { try { localStorage.setItem('vk.gsd.settings.v1', JSON.stringify(state)); } catch (e) { status('Settings could not be saved: ' + e.message, 'error'); } }
   function validHex(s) { return typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s); }
   function load() {
@@ -80,6 +81,7 @@
     document.querySelector('.tabs').classList.toggle('dimmed', id === 'settings');
     if (id !== 'settings') { state.ui.tab = id; save(); }
     if (id === 'text' && state.ui.text === 'animate') playPreview();
+    if (id === 'settings') refreshAbout();
   }
   function openTool(section, tool) {
     var root = $(section);
@@ -122,6 +124,45 @@
     } catch (e) { $('counter-preview').textContent = 'Check the number settings'; }
   }
 
+
+
+  /* ---------- About ---------- */
+  function setLed(id, cls) { $(id).className = 'led' + (cls ? ' ' + cls : ''); }
+  var ffmpegInfo = '';
+  function refreshAbout() {
+    $('about-version').textContent = VERSION;
+    $('stat-tools').textContent = all('.tile').length + ' tools · ' + presetList.length + ' text presets';
+    if (!isAE) { setLed('led-ae', 'warn'); $('stat-ae').textContent = 'Browser preview, not connected'; }
+    else if (connection && connection.isConnected()) { setLed('led-ae', 'on'); $('stat-ae').textContent = aeVersion ? 'Connected · ' + aeVersion : 'Connected'; }
+    else { setLed('led-ae', 'off'); $('stat-ae').textContent = 'Not connected — use Reconnect above'; }
+    if (!encoder) { setLed('led-ff', 'off'); $('stat-ff').textContent = 'Node runtime unavailable'; return; }
+    if (ffmpegInfo) { setLed('led-ff', ffmpegInfo.indexOf('ffmpeg') === 0 ? 'on' : 'off'); $('stat-ff').textContent = ffmpegInfo; return; }
+    $('stat-ff').textContent = 'Checking…';
+    encoder.testEncoder(executable()).then(function (v) {
+      ffmpegInfo = String(v).split(' Copyright')[0]; setLed('led-ff', 'on'); $('stat-ff').textContent = ffmpegInfo;
+    }, function () {
+      ffmpegInfo = 'Not found — GIF export and Exact crop are unavailable'; setLed('led-ff', 'off'); $('stat-ff').textContent = ffmpegInfo;
+    });
+  }
+  function diagnostics() {
+    return ['SuperV ' + VERSION,
+      'After Effects: ' + (aeVersion || (isAE ? 'connected, version unknown' : 'not running in AE')),
+      'FFmpeg: ' + (ffmpegInfo || 'not checked'),
+      'Encoder path: ' + executable(),
+      'Install folder: ' + (extensionRoot || 'unknown'),
+      'Panel size: ' + window.innerWidth + ' × ' + window.innerHeight,
+      'Last error: ' + (lastError || 'none')].join('\n');
+  }
+  function copyText(text) {
+    try {
+      var box = document.createElement('textarea');
+      box.value = text; box.style.position = 'fixed'; box.style.opacity = '0';
+      document.body.appendChild(box); box.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(box);
+      return ok;
+    } catch (e) { return false; }
+  }
 
   /* ---------- Ease curve editor ---------- */
   var EASES = {
@@ -351,7 +392,7 @@
   if (node) { try { path = node('path'); fs = node('fs'); extensionRoot = isAE ? decodeURI(cep.getSystemPath('extension')) : path.dirname(decodeURI(location.pathname).replace(/^\/(\w:)/, '$1')); extensionRoot = extensionRoot.replace(/^file:\/\/\//, ''); encoder = node(path.join(extensionRoot, 'js', 'encoder.cjs')); } catch (e) { status('Encoder module: ' + e.message, 'error'); } }
   try { if (isAE) extensionRoot = decodeURI(cep.getSystemPath('extension')).replace(/^file:\/\/\//, ''); connection = window.VKBridge.create(cep, extensionRoot); } catch (e) { status('Connection setup: ' + e.message, 'error'); }
   if (!isAE) $('preview-notice').hidden = false;
-  else bridge('ping').then(function (r) { status('SuperV ' + VERSION + ' · ' + r.message, 'success'); }).catch(function (e) { status(e.message, 'error'); });
+  else bridge('ping').then(function (r) { aeVersion = r.version || ''; status('SuperV ' + VERSION + ' · ' + r.message, 'success'); }).catch(function (e) { status(e.message, 'error'); });
 
   all('.tabs button').forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   $('settings-toggle').onclick = function () { showTab($('settings').classList.contains('active') ? state.ui.tab : 'settings'); };
@@ -370,7 +411,7 @@
   });
   $('reconnect').onclick = async function () {
     if (busy || !connection) return; setBusy(true); status('Connecting to After Effects…', 'working');
-    try { var r = await connection.reconnect(); status('SuperV ' + VERSION + ' · ' + r.message, 'success'); } catch (e) { status(e.message, 'error'); } finally { setBusy(false); }
+    try { var r = await connection.reconnect(); aeVersion = r.version || ''; ffmpegInfo = ''; status('SuperV ' + VERSION + ' · ' + r.message, 'success'); } catch (e) { status(e.message, 'error'); } finally { setBusy(false); }
   };
 
   ['counter-from', 'counter-to', 'counter-decimals', 'counter-prefix', 'counter-suffix', 'counter-separator', 'counter-first', 'counter-every'].forEach(function (id) { $(id).addEventListener('input', counterPreview); });
@@ -382,10 +423,12 @@
   $('cancel-export').onclick = function () { cancelRender = true; if (exportJob) exportJob.cancel(); };
   $('crop-cancel').onclick = function () { cancelRender = true; status('Cancelling after the current frames…', 'working'); };
   $('pick-video').onclick = async function () { var r = await run('pickFile', { title: 'Choose a video to convert' }); if (r && r.path) { videoPath = r.path; $('video-label').textContent = videoPath; } };
-  $('pick-encoder').onclick = async function () { var r = await run('pickFile', { title: 'Choose ffmpeg.exe' }); if (r && r.path) { state.encoder = r.path; $('encoder-path').value = r.path; save(); } };
+  $('pick-encoder').onclick = async function () { var r = await run('pickFile', { title: 'Choose ffmpeg.exe' }); if (r && r.path) { state.encoder = r.path; $('encoder-path').value = r.path; save(); ffmpegInfo = ''; refreshAbout(); } };
   $('encoder-path').onchange = function () { state.encoder = this.value.trim(); save(); };
   $('test-encoder').onclick = async function () { try { if (!encoder) throw new Error('Open the panel inside After Effects.'); status('Testing encoder…', 'working'); status(await encoder.testEncoder(executable()), 'success'); } catch (e) { status(e.message, 'error'); } };
   $('show-output').onclick = function () { if (outputPath && node) node('child_process').execFile('explorer.exe', ['/select,', outputPath], { windowsHide: true }, function () {}); };
+  $('copy-diag').onclick = function () { status(copyText(diagnostics()) ? 'Diagnostics copied. Paste them into a message or a GitHub issue.' : 'Could not copy. The details are in the About panel.', 'success'); };
+  $('open-folder').onclick = function () { if (node && extensionRoot) node('child_process').execFile('explorer.exe', [extensionRoot.replace(/\//g, '\\')], { windowsHide: true }, function () {}); else status('The install folder is only available inside After Effects.', 'error'); };
   $('reset-settings').onclick = function () { try { localStorage.removeItem('vk.gsd.settings.v1'); } catch (_) {} location.reload(); };
   all('input,select').forEach(function (el) {
     if (!el.id || el.id === 'encoder-path') return;
