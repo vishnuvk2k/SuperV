@@ -94,6 +94,8 @@ To uninstall, close AE and double-click **UNINSTALL.cmd**. It moves the installe
 
 For connection problems, use **Settings > Reconnect to After Effects**. For an old panel name, close AE and reinstall the complete extracted ZIP. See **VALIDATION.md** for completed checks and remaining native verification. Packaging does not automatically install the panel.
 
-## Building from this repository
+## FFmpeg
 
-`SuperV/bin/ffmpeg.exe` is not stored in git because it is over GitHub's 100 MB file limit. Before installing from a clone, run `scripts/Setup-Encoder.ps1` in PowerShell. It downloads FFmpeg into `SuperV/bin`. You can also pass `-EncoderPath C:\path\to\ffmpeg.exe` to copy one you already have.
+GIF export and Exact crop use FFmpeg. The unpacked `ffmpeg.exe` is about 98 MB, over GitHub's 100 MB file limit, so the repository ships it as gzip parts (`SuperV/bin/ffmpeg.gz.000`, `.001`). Both **INSTALL.cmd** and the panel itself join and unpack those parts automatically the first time they are needed, and the panel says so in its status bar. Nothing to download.
+
+If you would rather supply your own build, run `scripts/Setup-Encoder.ps1` (optionally with `-EncoderPath C:\path\to\ffmpeg.exe`), or point **Settings > FFmpeg** at any ffmpeg.exe. A path set in `SuperV/config/defaults.json` is used as the default when Settings is empty. Installing over an existing SuperV keeps the encoder you already had.

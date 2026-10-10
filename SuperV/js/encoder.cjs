@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const childProcess = require('child_process');
+const zlib = require('zlib');
 
 function number(v, min, max, name) {
   const n = Number(v);
@@ -160,4 +161,53 @@ function alphaBounds(executable, sequence, onProgress) {
     });
   });
 }
-module.exports = { buildArgs, testEncoder, makeTemp, cleanup, encode, validateSequence, alphaBounds, completePNG, waitForPNG };
+
+// The bundled encoder ships as gzip parts (ffmpeg.gz.000, .001 …) so every file
+// stays under the size limits of GitHub and of file transfers. Join and unpack once.
+function bundledParts(binDir) {
+  try {
+    return fs.readdirSync(binDir).filter(n => /^ffmpeg\.gz\.\d{3}$/.test(n)).sort().map(n => path.join(binDir, n));
+  } catch (e) { return []; }
+}
+function bundledEncoderReady(binDir) {
+  try { return fs.statSync(path.join(binDir, 'ffmpeg.exe')).size > 1000000; } catch (e) { return false; }
+}
+function unpackBundled(binDir) {
+  const target = path.join(binDir, 'ffmpeg.exe');
+  if (bundledEncoderReady(binDir)) return Promise.resolve(target);
+  const parts = bundledParts(binDir);
+  if (!parts.length) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const temp = path.join(binDir, 'ffmpeg.unpacking-' + Date.now() + '.tmp');
+    const out = fs.createWriteStream(temp), gunzip = zlib.createGunzip();
+    let done = false, index = 0;
+    function fail(err) {
+      if (done) return; done = true;
+      try { out.destroy(); } catch (_) {}
+      try { fs.unlinkSync(temp); } catch (_) {}
+      reject(err);
+    }
+    function next() {
+      if (index >= parts.length) { gunzip.end(); return; }
+      const stream = fs.createReadStream(parts[index++]);
+      stream.on('error', fail);
+      stream.on('end', next);
+      stream.pipe(gunzip, { end: false });
+    }
+    gunzip.on('error', fail);
+    out.on('error', fail);
+    out.on('close', () => {
+      if (done) return;
+      try {
+        if (fs.statSync(temp).size < 1000000) throw new Error('The unpacked encoder looks incomplete.');
+        fs.renameSync(temp, target);
+        done = true;
+        resolve(target);
+      } catch (e) { fail(e); }
+    });
+    gunzip.pipe(out);
+    next();
+  });
+}
+
+module.exports = { bundledParts, bundledEncoderReady, unpackBundled, buildArgs, testEncoder, makeTemp, cleanup, encode, validateSequence, alphaBounds, completePNG, waitForPNG };

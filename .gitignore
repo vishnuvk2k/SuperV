@@ -1,3 +1,4 @@
-# FFmpeg binary is >100 MB (over GitHub's file limit). Get it with scripts/Setup-Encoder.ps1.
+# The unpacked encoder is over GitHub's 100 MB file limit. The repo ships
+# SuperV/bin/ffmpeg.gz.* instead; the installer and the panel unpack it.
 SuperV/bin/ffmpeg.exe
 *.zip

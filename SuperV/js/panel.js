@@ -392,6 +392,18 @@
   load();
   renderCategories(); renderPresets(); counterPreview(); updateDependents(); initEase();
   if (node) { try { path = node('path'); fs = node('fs'); extensionRoot = isAE ? decodeURI(cep.getSystemPath('extension')) : path.dirname(decodeURI(location.pathname).replace(/^\/(\w:)/, '$1')); extensionRoot = extensionRoot.replace(/^file:\/\/\//, ''); encoder = node(path.join(extensionRoot, 'js', 'encoder.cjs')); } catch (e) { status('Encoder module: ' + e.message, 'error'); } }
+  if (encoder && path && extensionRoot && encoder.unpackBundled) {
+    var binDir = path.join(extensionRoot, 'bin');
+    if (!encoder.bundledEncoderReady(binDir) && encoder.bundledParts(binDir).length) {
+      status('Unpacking the included FFmpeg…', 'working');
+      encoder.unpackBundled(binDir).then(function (p) {
+        if (!p) return;
+        ffmpegInfo = '';
+        status('FFmpeg is ready. GIF export and Exact crop can run now.', 'success');
+        if ($('settings').classList.contains('active')) refreshAbout();
+      }, function (e) { status('Could not unpack the included FFmpeg: ' + e.message, 'error'); });
+    }
+  }
   try { if (isAE) extensionRoot = decodeURI(cep.getSystemPath('extension')).replace(/^file:\/\/\//, ''); connection = window.VKBridge.create(cep, extensionRoot); } catch (e) { status('Connection setup: ' + e.message, 'error'); }
   if (!isAE) $('preview-notice').hidden = false;
   else bridge('ping').then(function (r) { aeVersion = r.version || ''; status('SuperV ' + VERSION + ' · ' + r.message, 'success'); }).catch(function (e) { status(e.message, 'error'); });
