@@ -61,7 +61,7 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 - **Loop:** IN/OUT/both and cycle, ping-pong, offset or continue. Select numeric properties with at least two keys. Zero intervals uses all keys.
 - **Wiggle:** Only speed and amount. Applies to Position, including separated dimensions. Reapplying reuses the editable sliders. Non-panel expressions are protected unless replacement is enabled.
 - **Counter:** From/to, duration, decimals, prefix/suffix and custom comma spacing. Digits count from the right: 3/3 gives `1,500,000`; 3/2 gives `15,00,000`. Select text or deselect everything to create a layer. Reapply to update formatting. The value remains editable in Effect Controls.
-- **Colours:** HEX entry, RGB readout, four recent swatches, shift-click pins and selected/last-watched property capture. Auto-capture does not intercept every colour picker; select the target property or text/shape layer. Applying colour to a keyed property writes at the playhead.
+- **Colours:** HEX entry, RGB readout, four recent swatches and shift-click pins. Recent colours change only when you apply or sample a colour; nothing is captured automatically. Select a colour property, or a text/shape layer, then apply. Applying colour to a keyed property writes at the playhead.
 - **GIF:** Comp/work-area/video source, width, FPS, palette, dithering and loops. RGB flattens onto a background. Alpha exports a grayscale mask. RGB + Alpha uses thresholded binary transparency; GIF cannot retain soft alpha. PNG frames are checked before encoding. Failed encoding preserves existing output. Cancel Encoding stops FFmpeg; rendering must finish its active frame first. Maximum 18,000 frames.
 
 ## About and uninstall

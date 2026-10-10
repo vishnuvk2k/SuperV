@@ -209,13 +209,6 @@
   $('new-colour').onchange=async function(){var c=this.value;rememberColour(c);await run('colour',{hex:c});};
   $('apply-hex').onclick=applyHex;
   $('colour-hex').addEventListener('keydown',function(e){if(e.key==='Enter')applyHex();});
-  var watching=false;
-  if(isAE)setInterval(async function(){
-    if(busy||watching||!connection||!connection.isConnected()||!checked('colour-auto'))return;
-    watching=true;
-    try{var r=await bridge('colourWatch');if(r.colours)r.colours.slice(0,4).reverse().forEach(rememberColour);}catch(_){}
-    finally{watching=false;}
-  },1200);
   ['counter-from','counter-to','counter-decimals','counter-prefix','counter-suffix','counter-separator','counter-first','counter-every'].forEach(function(id){$(id).addEventListener('input',counterPreview);});
   $('clear-pins').onclick=function(){state.pinnedColours=[];save();swatches();status('Pinned colours cleared.');};
   $('replay').onclick=playPreview;

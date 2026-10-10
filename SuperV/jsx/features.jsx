@@ -1,6 +1,6 @@
 /* VK 1.1: alpha crop, verified rendering, expressions and colour tracking. */
 function VKFeatures(h) {
-    var pendingCrop = null, renderState = null, watched = [], watchedComp = null, watchSignature = '', watchTime = null;
+    var pendingCrop = null, renderState = null, watched = [], watchedComp = null;
     var moduleRoot = h.moduleRoot || new File($.fileName).parent.parent;
     function transform(l, name) { return l.property('ADBE Transform Group').property(name); }
     function wiggle(o) {
@@ -247,18 +247,6 @@ function VKFeatures(h) {
         }catch(ignore){}
         return result;
     }
-    function colourWatch() {
-        var c=app.project.activeItem;
-        if(!(c instanceof CompItem))return {colours:[]};
-        var targets=colourTargets(c);
-        if(watchedComp!==c){watched=[];watchSignature='';watchTime=null;watchedComp=c;}
-        if(targets.length)watched=targets;
-        var colours=readColours(watched),signature=colours.join(',');
-        var timelineMoved=watchTime!==null && Math.abs(watchTime-c.time)>0.00001;
-        watchTime=c.time;
-        if(signature===watchSignature || timelineMoved){watchSignature=signature;return {colours:[]};}
-        watchSignature=signature;return {colours:colours};
-    }
     function colour(o) {
         var c=h.comp(),targets=colourTargets(c),i;
         if(!targets.length && watchedComp===c)targets=watched;
@@ -282,5 +270,5 @@ function VKFeatures(h) {
         $.evalFile(f);
         return {message:'True Comp Duplicator opened. Select compositions in the Project panel and use its DUPLICATE button.'};
     }
-    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,colour:colour,colourWatch:colourWatch,duplicateExternal:duplicateExternal};
+    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,colour:colour,duplicateExternal:duplicateExternal};
 }
