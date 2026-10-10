@@ -1,4 +1,4 @@
-# SuperV 1.3.1
+# SuperV 1.3.2
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
 

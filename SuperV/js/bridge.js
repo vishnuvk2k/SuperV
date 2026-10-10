@@ -1,7 +1,7 @@
 /* Load the AE host explicitly, then serialize commands through one connection. */
 (function (root) {
   'use strict';
-  var VERSION = '1.3.1';
+  var VERSION = '1.3.2';
   function literal(value) {
     return JSON.stringify(value).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   }
