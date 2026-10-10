@@ -364,5 +364,52 @@ function VKMore(h) {
         }
         return { message: 'Stopped spin or orbit on ' + plural(n, 'layer') + '. The layer keeps its own Rotation and Position values.' };
     }
-    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor, shapePreset: shapePreset, compPreset: compPreset, spin: spin, stopSpin: stopSpin };
+
+    /* ---------- Depth: spread 2D layers along Z with optional size compensation and camera rig ---------- */
+    function depth(o) {
+        var c = h.comp(), ls = c.selectedLayers, lens = h.num(o.lens, 5, 1000), spacing = h.num(o.spacing, -100000, 100000), start = h.num(o.start, -100000, 100000);
+        var i, used = [], skipped = 0;
+        if (!ls.length) h.fail('Select the layers to spread in depth.');
+        var sorted = []; for (i = 0; i < ls.length; i++) sorted.push(ls[i]);
+        sorted.sort(function (a, b) { return a.index - b.index; });
+        if (o.order === 'far') sorted.reverse();
+        for (i = 0; i < sorted.length; i++) {
+            var l = sorted[i];
+            if (l instanceof CameraLayer || l instanceof LightLayer || l.parent || l.locked) { skipped++; continue; }
+            var pos = transform(l, 'ADBE Position'), sc = transform(l, 'ADBE Scale');
+            if (pos.numKeys || sc.numKeys || pos.dimensionsSeparated || (pos.expression && pos.expressionEnabled) || (sc.expression && sc.expressionEnabled)) { skipped++; continue; }
+            used.push(l);
+        }
+        if (!used.length) h.fail('No layers could be moved. Depth needs unlocked, unparented layers without Position or Scale keyframes or expressions.');
+        var cam = c.activeCamera, made = '';
+        var zoom = lens * c.width / 36, D = zoom;
+        if (cam) {
+            zoom = cam.property('ADBE Camera Options Group').property('ADBE Camera Zoom').value;
+            var cp = transform(cam, 'ADBE Position').value;
+            D = (!cam.parent && cp[2] < 0) ? -cp[2] : zoom;
+        } else if (o.camera) {
+            cam = c.layers.addCamera('SuperV Camera ' + lens + 'mm', [c.width / 2, c.height / 2]);
+            cam.property('ADBE Camera Options Group').property('ADBE Camera Zoom').setValue(zoom);
+            transform(cam, 'ADBE Position').setValue([c.width / 2, c.height / 2, -zoom]);
+            transform(cam, 'ADBE Anchor Point').setValue([c.width / 2, c.height / 2, 0]);
+            var rig = c.layers.addNull(c.duration);
+            rig.name = 'SuperV Camera Rig'; rig.threeDLayer = true;
+            transform(rig, 'ADBE Position').setValue([c.width / 2, c.height / 2, 0]);
+            cam.parent = rig;
+            made = ' Added a ' + lens + 'mm camera with a rig null: move or rotate the rig to fly through the layers.';
+        }
+        var cx = c.width / 2, cy = c.height / 2;
+        for (i = 0; i < used.length; i++) {
+            var L = used[i], z = start + i * spacing, f = (D + z) / D;
+            if (f <= 0.01) h.fail('Layers would end up behind the camera. Use a smaller spacing or start distance.');
+            L.threeDLayer = true;
+            var P = transform(L, 'ADBE Position'), S = transform(L, 'ADBE Scale'), p0 = P.value, s0 = S.value;
+            if (o.keepSize) {
+                P.setValue([cx + (p0[0] - cx) * f, cy + (p0[1] - cy) * f, z]);
+                S.setValue([s0[0] * f, s0[1] * f, (s0.length > 2 ? s0[2] : 100) * f]);
+            } else P.setValue([p0[0], p0[1], z]);
+        }
+        return { message: 'Spread ' + plural(used.length, 'layer') + ' in depth, ' + spacing + ' px apart' + (o.keepSize ? ', same size through the camera' : '') + '.' + made + (skipped ? ' Skipped ' + plural(skipped, 'layer') + ' (cameras, lights, parented, locked or animated).' : '') };
+    }
+    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor, shapePreset: shapePreset, compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
 }

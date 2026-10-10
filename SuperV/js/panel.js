@@ -100,6 +100,7 @@
       case 'loop': return { direction: value('loop-direction'), type: value('loop-type'), count: n('loop-count'), replace: checked('loop-replace') };
       case 'wiggle': return { amount: n('wiggle-pixels'), frequency: n('wiggle-speed'), replace: checked('wiggle-replace') };
       case 'ease': return { curve: easeEffective(), mode: segValue('ease-mode'), linear: easeFamily === 'linear' };
+      case 'depth': return { lens: Number(value('depth-lens')), spacing: n('depth-spacing'), start: n('depth-start'), order: segValue('depth-order'), keepSize: checked('depth-keep'), camera: checked('depth-camera') };
       case 'spin': return { mode: segValue('spin-mode'), speed: n('spin-speed'), radius: n('spin-radius'), direction: segValue('spin-direction'), replace: checked('spin-replace') };
       case 'counter': return { from: n('counter-from'), to: n('counter-to'), duration: n('counter-duration'), decimals: n('counter-decimals'), prefix: value('counter-prefix'), suffix: value('counter-suffix'), separator: checked('counter-separator'), first: checked('counter-separator') ? n('counter-first') : 3, every: checked('counter-separator') ? n('counter-every') : 3, replace: checked('counter-replace') };
       case 'text': case 'textPreview': return textOptions();
