@@ -14,6 +14,9 @@
 - **Split text** — break a text layer into one layer per line, word or character, keeping positions.
 - **Change case** — switch selected text layers to UPPERCASE, lowercase or Title Case.
 - **Typewriter cursor** — blinking cursor that follows the Typewriter preset.
+- **Text background box** — a rectangle behind a text layer with equal padding on all sides. It follows the text automatically as you type, resize or animate (driven by the text's bounds), with controls for padding, corner roundness, colour and opacity.
+- **Shape presets** — one-click circle, rounded rectangle, line or arrow, already centred in the comp.
+- **Comp size presets** — 1080p, 4K, Reels/Shorts (1080×1920), Square and Story; one click to create a comp or resize the current one.
 - **Update check** — panel tells you when a newer version is on GitHub. (Note: the repo is private, so this needs either a public releases location or a token.)
 
 ## Done in 1.2.2
