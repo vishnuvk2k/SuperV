@@ -142,11 +142,40 @@
     var k = easeStrength(); return easeBase.map(function (v, i) { return round2(LINEAR[i] + (v - LINEAR[i]) * k); });
   }
   function gx(x) { return 20 + x * 200; } function gy(y) { return 170 - y * 120; }
+  // Speed at time t along the value curve: dy/dx, in units of "times the average speed".
+  function curveSpeed(c, t) {
+    var u = 1 - t;
+    var dx = 3 * u * u * c[0] + 6 * u * t * (c[2] - c[0]) + 3 * t * t * (1 - c[2]);
+    var dy = 3 * u * u * c[1] + 6 * u * t * (c[3] - c[1]) + 3 * t * t * (1 - c[3]);
+    var x = 3 * u * u * t * c[0] + 3 * u * t * t * c[2] + t * t * t;
+    return { x: x, speed: Math.abs(dx) < 1e-6 ? null : dy / dx };
+  }
+  function speedPath(c) {
+    var pts = [], peak = 1, i, s;
+    for (i = 0; i <= 80; i++) { s = curveSpeed(c, i / 80); if (s.speed !== null) { pts.push(s); peak = Math.max(peak, Math.abs(s.speed)); } }
+    var scale = Math.max(1.2, peak * 1.08), d = '';
+    for (i = 0; i < pts.length; i++) {
+      var py = Math.max(16, Math.min(204, 170 - (pts[i].speed / scale) * 120));
+      d += (i ? 'L' : 'M') + (20 + pts[i].x * 200).toFixed(1) + ' ' + py.toFixed(1) + ' ';
+    }
+    return { d: d, scale: scale, average: 170 - (1 / scale) * 120 };
+  }
   function drawEase() {
-    var c = easeEffective(), x1 = gx(c[0]), y1 = gy(c[1]), x2 = gx(c[2]), y2 = gy(c[3]);
+    var c = easeEffective(), speedView = segValue('ease-view') === 'speed';
+    var x1 = gx(c[0]), y1 = gy(c[1]), x2 = gx(c[2]), y2 = gy(c[3]);
     $('eg-curve').setAttribute('d', 'M20 170 C' + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2 + ' 220 50');
     [['eg-l1', 20, 170, x1, y1], ['eg-l2', 220, 50, x2, y2]].forEach(function (l) { var e = $(l[0]); e.setAttribute('x1', l[1]); e.setAttribute('y1', l[2]); e.setAttribute('x2', l[3]); e.setAttribute('y2', l[4]); });
     $('eg-h1').setAttribute('cx', x1); $('eg-h1').setAttribute('cy', y1); $('eg-h2').setAttribute('cx', x2); $('eg-h2').setAttribute('cy', y2);
+    var sp = speedPath(c);
+    $('eg-speed').setAttribute('d', speedView ? sp.d : '');
+    // The dashed reference is the linear curve in value view, constant speed in speed view.
+    var ref = $('ease-graph').querySelector('.eg-diag');
+    ref.setAttribute('x1', 20); ref.setAttribute('x2', 220);
+    ref.setAttribute('y1', speedView ? sp.average : 170); ref.setAttribute('y2', speedView ? sp.average : 50);
+    all('#eg-curve, #eg-l1, #eg-l2, #eg-h1, #eg-h2, .eg-end').forEach(function (e) { e.style.display = speedView ? 'none' : ''; });
+    var outSpeed = c[0] > 0 ? c[1] / c[0] : 0, inSpeed = c[2] < 1 ? (1 - c[3]) / (1 - c[2]) : 0;
+    $('ease-readout').textContent = easeFamily === 'linear' ? 'Constant speed, no easing.' :
+      'Out ' + Math.round(outSpeed * 100) + '% speed, ' + Math.round(c[0] * 100) + '% influence · In ' + Math.round(inSpeed * 100) + '% speed, ' + Math.round((1 - c[2]) * 100) + '% influence' + (speedView ? ' · drag handles in Value graph' : '');
     $('ease-values').value = c.join(', ');
     $('ease-strength-val').textContent = easeFamily === 'linear' ? '' : $('ease-strength').value + '%';
     all('#ease-family button').forEach(function (b) { b.classList.toggle('on', b.dataset.value === easeFamily); });
@@ -176,6 +205,7 @@
     });
     all('#ease-family button').forEach(function (b) { b.onclick = function () { easeFamily = b.dataset.value; pickEasePreset(); }; });
     all('#ease-dir button').forEach(function (b) { b.onclick = function () { setSeg('ease-dir', b.dataset.value); if (easeFamily === 'custom') easeFamily = 'cubic'; pickEasePreset(); }; });
+    all('#ease-view button').forEach(function (b) { b.onclick = function () { setSeg('ease-view', b.dataset.value); drawEase(); }; });
     $('ease-strength').addEventListener('input', drawEase);
     $('ease-values').addEventListener('change', function () {
       var v = this.value.split(/[\s,]+/).filter(Boolean).map(Number);
@@ -327,7 +357,7 @@
   $('settings-toggle').onclick = function () { showTab($('settings').classList.contains('active') ? state.ui.tab : 'settings'); };
   $('settings-back').onclick = function () { showTab(state.ui.tab); };
   all('.tile').forEach(function (t) { t.onclick = function () { openTool(t.closest('.tab').id, t.dataset.tool); }; });
-  all('.seg:not(#ease-dir), .chips:not(#text-cats):not(#ease-family)').forEach(function (s) { all('button', s).forEach(function (b) { b.onclick = function () { setSeg(s.id, b.dataset.value); if (s.id === 'text-direction') playPreview(); }; }); });
+  all('.seg:not(#ease-dir):not(#ease-view), .chips:not(#text-cats):not(#ease-family)').forEach(function (s) { all('button', s).forEach(function (b) { b.onclick = function () { setSeg(s.id, b.dataset.value); if (s.id === 'text-direction') playPreview(); }; }); });
 
   all('[data-action]').forEach(function (b) {
     b.onclick = async function () {

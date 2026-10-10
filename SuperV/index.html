@@ -69,8 +69,10 @@
 
     <div class="opts" data-tool="ease" hidden>
       <h3>Ease</h3>
+      <div class="seg" id="ease-view"><button data-value="value" class="on">Value graph</button><button data-value="speed">Speed graph</button></div>
       <div class="ease-graph-wrap">
-        <svg id="ease-graph" viewBox="0 0 240 220" role="img" aria-label="Easing curve. Drag the two handles to change it.">
+        <svg id="ease-graph" viewBox="0 -36 240 285" role="img" aria-label="Easing curve. Drag the two handles to change it.">
+          <path id="eg-speed" class="eg-speed"/>
           <rect x="20" y="50" width="200" height="120" class="eg-box"/>
           <line x1="20" y1="170" x2="220" y2="50" class="eg-diag"/>
           <line id="eg-l1" class="eg-arm"/><line id="eg-l2" class="eg-arm"/>
@@ -80,6 +82,7 @@
           <circle id="eg-h2" r="7" class="eg-handle" tabindex="0" aria-label="In handle"/>
         </svg>
         <div class="ease-track" aria-hidden="true"><i id="ease-ball"></i></div>
+        <p class="eg-readout" id="ease-readout"></p>
       </div>
       <label>Curve values<input id="ease-values" type="text" spellcheck="false" value="0.65, 0, 0.35, 1"></label>
       <div class="chips small" id="ease-family">
