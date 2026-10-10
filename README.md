@@ -66,7 +66,7 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 
 ## About and uninstall
 
-Done by VisHnu VK and GPT-6 Astra
+Done by VisHnu VK, GPT-6 Astra and Claude
 
 The minimal About section is at the bottom of Settings. Third-party components: True Comp Duplicator and FFmpeg. Other reference plugins and personal recordings are not bundled.
 
