@@ -177,10 +177,11 @@ function VKFeatures(h) {
         for(i=1;i<=c.numLayers;i++)if(c.layer(i).solo)anySolo=true;
         for(i=1;i<=c.numLayers;i++){
             l=c.layer(i);
-            if(!(l instanceof AVLayer))continue;
+            // Shape and text layers are not reported as AVLayer by instanceof, so only exclude cameras and lights.
+            if(l instanceof CameraLayer||l instanceof LightLayer)continue;
             if(scope==='selection'){if(!selected[i])continue;}
             else if(!l.enabled||(anySolo&&!l.solo))continue;
-            if(!l.hasVideo||l.adjustmentLayer||l.guideLayer||l.nullLayer)continue;
+            try{if(!l.hasVideo||l.adjustmentLayer||l.guideLayer||l.nullLayer)continue;}catch(skip){continue;}
             try{if(l.isTrackMatte&&scope!=='selection')continue;}catch(ignore){}
             ids.push(i);
             var fx=l.property('ADBE Effect Parade');
@@ -193,7 +194,7 @@ function VKFeatures(h) {
     function cropFast(o) {
         var c=h.comp(),info,start,total,fps=c.frameRate,i;
         cropPreflight(c);info=measuredLayers(c,o.scope);
-        if(!info.ids.length)h.fail('No visible layers to measure. Nothing was cropped.');
+        if(!info.ids.length)h.fail(o.scope==='selection'?'The selected layers have no visible artwork to measure (nulls, adjustment and guide layers are skipped). Nothing was cropped.':'No visible layers to measure. Turn on a layer\'s video switch, or check solo. Nothing was cropped.');
         if(o.range==='comp'){start=0;total=Math.max(1,Math.ceil(c.duration*fps-0.0001));}
         else if(o.range==='current'){start=c.time;total=1;}
         else{start=c.workAreaStart;total=Math.max(1,Math.ceil(c.workAreaDuration*fps-0.0001));}
