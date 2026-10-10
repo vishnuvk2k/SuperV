@@ -4,14 +4,13 @@
   var $ = function (id) { return document.getElementById(id); };
   var all = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var cep = window.__adobe_cep__, isAE = !!cep, node = window.cep_node && window.cep_node.require ? window.cep_node.require : (typeof require === 'function' ? require : null);
-  var defaults = { pinnedColours: [], currentColour: '#0080FF', encoder: '', ui: { tab: 'effects', effects: '', text: 'animate' } };
+  var defaults = { encoder: '', ui: { tab: 'effects', effects: '', text: 'animate' } };
   var presetList = VKText.presets, category = presetList[0].group;
-  var cancelRender = false, state, preset = 'slide', encoder = null, path = null, fs = null, extensionRoot = '', videoPath = '', outputPath = '', exportJob = null, busy = false, previewAnimations = [], sampled = [];
+  var cancelRender = false, state, preset = 'slide', encoder = null, path = null, fs = null, extensionRoot = '', videoPath = '', outputPath = '', exportJob = null, busy = false, previewAnimations = [];
   try {
     var configRequest = new XMLHttpRequest(); configRequest.open('GET', 'config/defaults.json', false); configRequest.send();
     var config = JSON.parse(configRequest.responseText);
-    if (Array.isArray(config.pinnedColours)) defaults.pinnedColours = config.pinnedColours;
-    if (/^#[0-9a-f]{6}$/i.test(config.theme)) { document.documentElement.style.setProperty('--blue', config.theme); defaults.currentColour = config.theme.toUpperCase(); }
+    if (/^#[0-9a-f]{6}$/i.test(config.theme)) document.documentElement.style.setProperty('--blue', config.theme);
   } catch (_) { /* Built-in defaults also support browser previews with local-file restrictions. */ }
 
   /* ---------- Status, settings ---------- */
@@ -21,10 +20,8 @@
   function load() {
     try { state = JSON.parse(localStorage.getItem('vk.gsd.settings.v1') || '{}'); } catch (_) { state = {}; }
     state = Object.assign({}, defaults, state);
-    delete state.recentColours;
+    delete state.recentColours; delete state.pinnedColours; delete state.currentColour;
     state.ui = Object.assign({}, defaults.ui, state.ui || {});
-    state.pinnedColours = Array.isArray(state.pinnedColours) ? state.pinnedColours.filter(validHex).slice(0, 12) : [];
-    if (!validHex(state.currentColour)) state.currentColour = defaults.currentColour;
     state.fields = state.fields || {};
     Object.keys(state.fields).forEach(function (id) {
       var el = $(id); if (!el) return;
@@ -62,7 +59,7 @@
     if (!connection) return Promise.reject(new Error('The After Effects connection could not start. Reinstall the complete ' + VERSION + ' package.'));
     return connection.call(action, args);
   }
-  function setBusy(v) { busy = v; all('[data-action],#export-gif,#sample-colour,#apply-colour').forEach(function (b) { b.disabled = v; }); }
+  function setBusy(v) { busy = v; all('[data-action],#export-gif').forEach(function (b) { b.disabled = v; }); }
   function setBtn(btn, st) {
     if (!btn || !btn.classList.contains('primary')) return;
     clearTimeout(btn._t); btn.dataset.state = st;
@@ -107,7 +104,6 @@
       case 'splitText': return { by: segValue('split-by'), hideOriginal: checked('split-hide') };
       case 'changeCase': return { mode: segValue('case-mode') };
       case 'textCursor': return { duration: n('cursor-duration'), cursor: value('cursor-char'), blink: n('cursor-blink'), keep: checked('cursor-keep'), replace: checked('cursor-replace') };
-      case 'shapePreset': return { kind: segValue('shape-kind'), size: n('shape-size'), width: n('shape-width'), height: n('shape-height'), roundness: n('shape-round'), stroke: n('shape-stroke'), color: value('shape-colour') };
       case 'compPreset': return { preset: segValue('comp-preset'), mode: segValue('comp-mode'), center: checked('comp-center'), fps: n('comp-fps'), duration: n('comp-duration') };
       default: return {};
     }
@@ -122,43 +118,19 @@
     } catch (e) { $('counter-preview').textContent = 'Check the number settings'; }
   }
 
-  /* ---------- Colour ---------- */
-  function showColour(hex) {
-    hex = hex.toUpperCase(); state.currentColour = hex; save();
-    $('colour-hex').value = hex; $('new-colour').value = hex.toLowerCase(); $('colour-swatch').style.background = hex;
-    $('colour-rgb').textContent = [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); }).join(', ');
-    $('pin-colour').textContent = state.pinnedColours.indexOf(hex) >= 0 ? 'Unpin colour' : 'Pin colour';
-  }
-  function swatches() {
-    function fill(id, colours, pinned) {
-      $(id).textContent = '';
-      colours.forEach(function (c) {
-        var b = document.createElement('button'); b.className = 'swatch'; b.style.backgroundColor = c;
-        b.title = c + (pinned ? ' · click to use · shift-click to unpin' : ' · click to use'); b.setAttribute('aria-label', b.title);
-        b.onclick = function (e) {
-          if (pinned && e.shiftKey) { state.pinnedColours.splice(state.pinnedColours.indexOf(c), 1); save(); swatches(); showColour(state.currentColour); return; }
-          showColour(c);
-        };
-        $(id).appendChild(b);
-      });
-    }
-    fill('pinned-swatches', state.pinnedColours, true);
-    fill('sampled-swatches', sampled, false);
-    $('sampled-row').hidden = !sampled.length;
-  }
-  function readHex() { var hex = value('colour-hex').trim(); if (hex.charAt(0) !== '#') hex = '#' + hex; return hex; }
-
   /* ---------- Text animation previews ---------- */
   function textOptions() { return { preset: preset, duration: n('text-duration'), stagger: n('text-stagger'), by: VKText.get(preset).by || value('text-by'), direction: segValue('text-direction') }; }
   function animateText(el, spec, o) {
     el.textContent = ''; var units = [], animations = [], by = spec.by || o.by, sample = VKText.sample(spec), lines = sample.split('\n');
     el.classList.toggle('has-lines', lines.length > 1);
+    // One centred block holds every unit, so a flex parent never stacks letters as separate rows.
+    var host = el; el = document.createElement('span'); el.className = 'units'; host.appendChild(el);
     lines.forEach(function (line, lineIndex) {
       var parts = by === 'line' ? [line] : by === 'word' ? line.split(' ') : line.split('');
       parts.forEach(function (part, i) { var unit = document.createElement('span'); unit.className = 'unit'; unit.textContent = part; el.appendChild(unit); units.push(unit); if (by === 'word' && i < parts.length - 1) el.appendChild(document.createTextNode(' ')); });
       if (lineIndex < lines.length - 1) el.appendChild(document.createElement('br'));
     });
-    var ds = VKText.delays(sample, by, o.stagger, spec.parallelRows), rawTotal = o.duration + Math.max.apply(Math, ds), total = o.duration, factor = total / rawTotal, ratio = parseFloat(getComputedStyle(el).fontSize) / 66;
+    var ds = VKText.delays(sample, by, o.stagger, spec.parallelRows), rawTotal = o.duration + Math.max.apply(Math, ds), total = o.duration, factor = total / rawTotal, ratio = parseFloat(getComputedStyle(host).fontSize) / 66;
     units.forEach(function (unit, i) {
       var frames = [], delay = o.direction === 'out' && spec.reverseOut ? rawTotal - o.duration - ds[i] : ds[i];
       if (spec.step) { delay += (i + 1) * o.duration / units.length; animations.push(unit.animate([{ opacity: o.direction === 'out' ? 1 : 0 }, { opacity: o.direction === 'out' ? 0 : 1 }], { duration: 1, delay: Math.max(0, delay * factor * 1000 - 1), easing: 'steps(1,end)', fill: 'both' })); return; }
@@ -279,7 +251,7 @@
 
   /* ---------- Start up ---------- */
   load();
-  renderCategories(); renderPresets(); counterPreview(); swatches(); showColour(state.currentColour); updateDependents();
+  renderCategories(); renderPresets(); counterPreview(); updateDependents();
   if (node) { try { path = node('path'); fs = node('fs'); extensionRoot = isAE ? decodeURI(cep.getSystemPath('extension')) : path.dirname(decodeURI(location.pathname).replace(/^\/(\w:)/, '$1')); extensionRoot = extensionRoot.replace(/^file:\/\/\//, ''); encoder = node(path.join(extensionRoot, 'js', 'encoder.cjs')); } catch (e) { status('Encoder module: ' + e.message, 'error'); } }
   try { if (isAE) extensionRoot = decodeURI(cep.getSystemPath('extension')).replace(/^file:\/\/\//, ''); connection = window.VKBridge.create(cep, extensionRoot); } catch (e) { status('Connection setup: ' + e.message, 'error'); }
   if (!isAE) $('preview-notice').hidden = false;
@@ -310,14 +282,6 @@
   $('replay').onclick = playPreview;
   $('gif-channels').addEventListener('change', updateDependents);
 
-  $('new-colour').addEventListener('input', function () { showColour(this.value); });
-  $('colour-hex').addEventListener('change', function () { var hex = readHex(); if (validHex(hex)) showColour(hex); else status('Enter six HEX digits, for example #46A2DA.', 'error'); });
-  $('colour-hex').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('apply-colour').click(); });
-  $('apply-colour').onclick = async function () { var hex = readHex(); if (!validHex(hex)) { status('Enter six HEX digits, for example #46A2DA.', 'error'); return; } showColour(hex); await run('colour', { hex: hex.toUpperCase() }, this); };
-  $('pin-colour').onclick = function () { var c = state.currentColour, i = state.pinnedColours.indexOf(c); if (i >= 0) state.pinnedColours.splice(i, 1); else if (state.pinnedColours.length < 12) state.pinnedColours.push(c); else { status('You can pin up to 12 colours.', 'error'); return; } save(); swatches(); showColour(c); };
-  $('sample-colour').onclick = async function () { var r = await run('colour', { sample: true }); if (r && r.colours && r.colours.length) { sampled = r.colours.slice(0, 8); swatches(); showColour(sampled[0]); } };
-  $('clear-pins').onclick = function () { state.pinnedColours = []; save(); swatches(); showColour(state.currentColour); status('Pinned colours cleared.'); };
-
   $('export-gif').onclick = function () { exportGIF(this); };
   $('cancel-export').onclick = function () { cancelRender = true; if (exportJob) exportJob.cancel(); };
   $('crop-cancel').onclick = function () { cancelRender = true; status('Cancelling after the current frames…', 'working'); };
@@ -328,7 +292,7 @@
   $('show-output').onclick = function () { if (outputPath && node) node('child_process').execFile('explorer.exe', ['/select,', outputPath], { windowsHide: true }, function () {}); };
   $('reset-settings').onclick = function () { try { localStorage.removeItem('vk.gsd.settings.v1'); } catch (_) {} location.reload(); };
   all('input,select').forEach(function (el) {
-    if (!el.id || ['encoder-path', 'new-colour', 'colour-hex'].indexOf(el.id) >= 0) return;
+    if (!el.id || el.id === 'encoder-path') return;
     el.addEventListener('change', function () { state.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value; save(); });
   });
 

@@ -88,6 +88,7 @@ button:focus-visible,.tile:focus-visible,input:focus-visible,select:focus-visibl
 .preview-stage{height:130px;border-radius:8px;background:var(--field);border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:12px;text-align:center}
 #preview-text{font:700 38px/1.08 Helvetica,Arial,sans-serif;letter-spacing:-.8px}
 #preview-text.has-lines{font-size:28px}
+#preview-text .units,.preset .sample .units{display:block;text-align:center;white-space:nowrap}
 #preview-text .unit,.preset .sample .unit{display:inline-block;white-space:pre;transform-origin:50% 80%;will-change:transform,opacity}
 .preview-tag{position:absolute;left:10px;bottom:8px;font-size:11px;color:var(--faint)}
 #replay{position:absolute;right:6px;bottom:4px}
@@ -106,20 +107,6 @@ button:focus-visible,.tile:focus-visible,input:focus-visible,select:focus-visibl
 /* Counter */
 .counter-preview{padding:12px;border-radius:8px;background:var(--field);border:1px solid var(--line-soft);text-align:center}
 .counter-preview output{display:block;font-size:20px;font-weight:600;color:#53adff;overflow-wrap:anywhere}
-
-/* Colour */
-.colour-now{display:flex;align-items:flex-end;gap:10px}
-.swatch-big{position:relative;width:52px;height:52px;flex-shrink:0;cursor:pointer}
-.swatch-big span{position:absolute;inset:0;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:var(--blue)}
-.swatch-big input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
-.colour-now .hex{flex:1}
-#colour-rgb{font-size:11px;color:var(--faint);padding-bottom:9px;white-space:nowrap}
-.swatch-row{display:flex;align-items:center;gap:10px;min-height:26px}
-.mini-label{font-size:11px;color:var(--faint);width:44px;flex-shrink:0}
-#pinned-swatches,#sampled-swatches{display:flex;flex-wrap:wrap;gap:6px}
-#pinned-swatches:empty::after{content:"None yet";font-size:11px;color:var(--faint)}
-.swatch{width:30px;height:22px;border-radius:5px;border:1px solid rgba(255,255,255,.15);padding:0}
-.swatch:hover{transform:translateY(-1px)}
 
 /* GIF */
 .export-stage{height:120px;border-radius:8px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font:700 26px Helvetica,Arial,sans-serif}
