@@ -28,6 +28,7 @@
     <button class="tile" data-tool="keys"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l4.5 6L7 18l-4.5-6zM17 6l4.5 6-4.5 6-4.5-6z"/></svg><span>Keyframes</span></button>
     <button class="tile" data-tool="loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 2.5v4.5h-4.5M6 21.5V17h4.5"/></svg><span>Loop</span></button>
     <button class="tile" data-tool="wiggle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c1.7-5 3.3-5 5 0s3.3 5 5 0 3.3-5 5 0 3.3 5 5 0"/></svg><span>Wiggle</span></button>
+    <button class="tile" data-tool="spin"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M18 2.5l-.6 3.6 3.6.6"/></svg><span>Spin</span></button>
     <button class="tile" data-tool="counter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3 7.5 21M16.5 3l-2 18M4 8.5h16.5M3.5 15.5H20"/></svg><span>Counter</span></button>
     <button class="tile" data-tool="comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="13" height="9" rx="1.2"/><rect x="16" y="3" width="6" height="18" rx="1.2"/></svg><span>Comp size</span></button>
     <button class="tile" data-tool="gif"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M9 10H7v4h2v-2M12 10v4M15 14v-4h2.8M15 12h2"/></svg><span>GIF</span></button>
@@ -89,6 +90,19 @@
       <p class="hint">Edit Wiggle Speed and Wiggle Amount in Effect Controls at any time.</p>
     </div>
 
+    <div class="opts" data-tool="spin" hidden>
+      <h3>Rotate forever</h3>
+      <div class="seg" id="spin-mode"><button data-value="spin" class="on">Spin in place</button><button data-value="orbit">Orbit</button></div>
+      <div class="row">
+        <label>Speed (° per second)<input id="spin-speed" type="number" min="0" max="36000" step="1" value="90"></label>
+        <label data-show-for="spin-mode" data-show="orbit">Radius (px)<input id="spin-radius" type="number" min="0" max="100000" step="1" value="200"></label>
+      </div>
+      <div class="seg" id="spin-direction"><button data-value="cw" class="on">Clockwise</button><button data-value="ccw">Counter-clockwise</button></div>
+      <label class="check"><input id="spin-replace" type="checkbox">Replace existing expressions</label>
+      <button class="primary" data-action="spin"><span>Start</span></button>
+      <button class="secondary" data-action="stopSpin">Stop spin or orbit</button>
+      <p class="hint">No keyframes. 360° per second is one full turn each second. Orbit circles around where the layer sits now. Change speed and radius later with the sliders in Effect Controls.</p>
+    </div>
     <div class="opts" data-tool="counter" hidden>
       <h3>Number counter</h3>
       <div class="counter-preview" aria-live="polite"><output id="counter-preview"></output></div>

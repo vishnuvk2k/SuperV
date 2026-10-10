@@ -98,6 +98,7 @@
       case 'copyKeys': case 'pasteKeys': return { expressions: checked('keys-expressions'), offset: value('keys-offset') };
       case 'loop': return { direction: value('loop-direction'), type: value('loop-type'), count: n('loop-count'), replace: checked('loop-replace') };
       case 'wiggle': return { amount: n('wiggle-pixels'), frequency: n('wiggle-speed'), replace: checked('wiggle-replace') };
+      case 'spin': return { mode: segValue('spin-mode'), speed: n('spin-speed'), radius: n('spin-radius'), direction: segValue('spin-direction'), replace: checked('spin-replace') };
       case 'counter': return { from: n('counter-from'), to: n('counter-to'), duration: n('counter-duration'), decimals: n('counter-decimals'), prefix: value('counter-prefix'), suffix: value('counter-suffix'), separator: checked('counter-separator'), first: checked('counter-separator') ? n('counter-first') : 3, every: checked('counter-separator') ? n('counter-every') : 3, replace: checked('counter-replace') };
       case 'text': case 'textPreview': return textOptions();
       case 'textBox': return { padding: n('box-padding'), roundness: n('box-roundness'), color: value('box-colour'), opacity: n('box-opacity') };

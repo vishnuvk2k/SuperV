@@ -21,6 +21,12 @@ Everything below is in 1.3.0 except the update check.
 - **Comp size presets** — 1080p, 4K, Reels/Shorts (1080×1920), Square and Story; one click to create a comp or resize the current one.
 - **Update check** — panel tells you when a newer version is on GitHub. (Note: the repo is private, so this needs either a public releases location or a token.)
 
+## Since 1.3.0 (in code, not packaged yet)
+- Preset preview tiles fixed (letters no longer stack one per line).
+- Shapes and Colour tools removed from the panel.
+- Compact tiles: 62 px high, five per row in wide panels.
+- **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
+
 ## Done in 1.2.2
 - Crop Comp Fast mode (layer bounds, no rendering) as default; Exact mode in batches at half size, cancellable.
 - Fast crop includes shape and text layers.

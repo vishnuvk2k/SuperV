@@ -298,5 +298,71 @@ function VKMore(h) {
         return { message: 'Resized to ' + p[0] + ' × ' + p[1] + (o.center ? ', content kept centred' : '') + '.' + (skipped ? ' ' + plural(skipped, 'layer') + ' with a Position expression were not moved.' : '') };
     }
 
-    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor, shapePreset: shapePreset, compPreset: compPreset };
+
+    /* ---------- Rotate forever: spin in place or orbit ---------- */
+    var SPIN = 'Spin Speed (deg/sec)', ORBIT_SPEED = 'Orbit Speed (deg/sec)', ORBIT_RADIUS = 'Orbit Radius (px)';
+    function spinTargets(l, mode) {
+        if (mode === 'spin') return [transform(l, 'ADBE Rotate Z')];
+        var pos = transform(l, 'ADBE Position');
+        return pos.dimensionsSeparated ? [pos.getSeparationFollower(0), pos.getSeparationFollower(1)] : [pos];
+    }
+    function setSlider(l, name, v, time) {
+        var ctl = l.property('ADBE Effect Parade').property(name);
+        if (!ctl) { ctl = l.property('ADBE Effect Parade').addProperty('ADBE Slider Control'); ctl.name = name; }
+        var slider = l.property('ADBE Effect Parade').property(name).property(1);
+        if (slider.numKeys) slider.setValueAtTime(time, v); else slider.setValue(v);
+    }
+    function spin(o) {
+        var c = h.comp(), ls = c.selectedLayers, mode = o.mode, i, j;
+        if (!/^(spin|orbit)$/.test(mode)) h.fail('Choose Spin or Orbit.');
+        var speed = h.num(o.speed, 0, 36000) * (o.direction === 'ccw' ? -1 : 1), radius = h.num(o.radius, 0, 100000);
+        if (!ls.length) h.fail('Select one or more layers to ' + (mode === 'spin' ? 'spin.' : 'orbit.'));
+        var names = mode === 'spin' ? [SPIN] : [ORBIT_SPEED, ORBIT_RADIUS], tag = mode === 'spin' ? 'VK SPIN' : 'VK ORBIT';
+        // Check every layer before changing any of them.
+        for (i = 0; i < ls.length; i++) {
+            var l = ls[i], fx = l.property('ADBE Effect Parade');
+            if (l.locked) h.fail('Unlock the selected layers first.');
+            if (!fx || !fx.canAddProperty('ADBE Slider Control')) h.fail('"' + l.name + '" cannot hold slider controls (cameras and lights are not supported).');
+            for (j = 0; j < names.length; j++) { var ex = fx.property(names[j]); if (ex && ex.matchName !== 'ADBE Slider Control') h.fail('Rename the effect called "' + names[j] + '" on ' + l.name + '. A Slider Control with that name is needed.'); }
+            var ts = spinTargets(l, mode);
+            for (j = 0; j < ts.length; j++) {
+                if (!ts[j].canSetExpression) h.fail('"' + l.name + '" does not support this expression.');
+                if (ts[j].expression && ts[j].expression.indexOf('// ' + tag) !== 0 && !o.replace) h.fail('"' + l.name + '" already has a ' + (mode === 'spin' ? 'Rotation' : 'Position') + ' expression. Turn on Replace existing expressions to use ' + (mode === 'spin' ? 'Spin.' : 'Orbit.'));
+            }
+        }
+        for (i = 0; i < ls.length; i++) {
+            var layer = ls[i];
+            if (mode === 'spin') {
+                setSlider(layer, SPIN, speed, c.time);
+                h.setExpression(transform(layer, 'ADBE Rotate Z'), '// VK SPIN\nvalue + time*effect(' + h.encode(SPIN) + ')(1);');
+            } else {
+                setSlider(layer, ORBIT_SPEED, speed, c.time);
+                setSlider(layer, ORBIT_RADIUS, radius, c.time);
+                var head = '// VK ORBIT\nvar a=degreesToRadians(time*effect(' + h.encode(ORBIT_SPEED) + ')(1));\nvar r=effect(' + h.encode(ORBIT_RADIUS) + ')(1);\n';
+                var ps = spinTargets(layer, 'orbit');
+                if (ps.length === 2) {
+                    h.setExpression(ps[0], head + 'value + Math.cos(a)*r;');
+                    h.setExpression(ps[1], head + 'value + Math.sin(a)*r;');
+                } else {
+                    h.setExpression(ps[0], head + 'var p=value;\np.length>2 ? [p[0]+Math.cos(a)*r, p[1]+Math.sin(a)*r, p[2]] : [p[0]+Math.cos(a)*r, p[1]+Math.sin(a)*r];');
+                }
+            }
+        }
+        return { message: (mode === 'spin' ? 'Spinning ' : 'Orbiting ') + plural(ls.length, 'layer') + ' at ' + Math.abs(speed) + '° per second, no keyframes. Change the speed' + (mode === 'orbit' ? ' and radius' : '') + ' in Effect Controls.' };
+    }
+    function stopSpin() {
+        var c = h.comp(), ls = c.selectedLayers, n = 0, i, j, k;
+        if (!ls.length) h.fail('Select the spinning or orbiting layers.');
+        for (i = 0; i < ls.length; i++) {
+            var l = ls[i], hit = false;
+            if (l.locked) h.fail('Unlock the selected layers first.');
+            var props = spinTargets(l, 'spin').concat(spinTargets(l, 'orbit'));
+            for (j = 0; j < props.length; j++) if (/^\/\/ VK (SPIN|ORBIT)/.test(props[j].expression)) { props[j].expression = ''; hit = true; }
+            var fx = l.property('ADBE Effect Parade'), names = [SPIN, ORBIT_SPEED, ORBIT_RADIUS];
+            for (k = 0; fx && k < names.length; k++) { var e = fx.property(names[k]); if (e && e.matchName === 'ADBE Slider Control') e.remove(); }
+            if (hit) n++;
+        }
+        return { message: 'Stopped spin or orbit on ' + plural(n, 'layer') + '. The layer keeps its own Rotation and Position values.' };
+    }
+    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor, shapePreset: shapePreset, compPreset: compPreset, spin: spin, stopSpin: stopSpin };
 }
