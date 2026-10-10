@@ -13,6 +13,14 @@ After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray inter
 
 The installer backs up previous installations to `%APPDATA%\SuperV-Backups` and installs at `%APPDATA%\Adobe\CEP\extensions\SuperV`. Existing CEP identity/settings keys remain compatible. Do not install the JSON separately or use AE's native Plug-ins folder. This personal unsigned extension uses `PlayerDebugMode` in the current Windows user's CSXS 11 and 12 registry keys. The installer retains previous values for optional restoration.
 
+## New in 1.3.2
+
+- **Lighter install.** The packed FFmpeg parts (`ffmpeg.gz.000`, `.001`, 37 MB together) are deleted automatically once `ffmpeg.exe` has been unpacked, by both the installer and the panel.
+- **The encoder survives an uninstall.** Installing straight after running UNINSTALL.cmd used to leave `bin/` with only the licence and readme, because the encoder had already been moved into `%APPDATA%\SuperV-Backups`. The installer now searches those backups too, newest first.
+- **Dead code removed.** The unused colour sampler and shape presets are gone from the host scripts, along with their leftover settings keys.
+
+You do not need to uninstall before installing. **INSTALL.cmd** backs up and replaces the previous version on its own.
+
 ## New in 1.3
 
 **New layout.** Two big tabs, **Effects** and **Text**. Each shows tool tiles; click a tile and its options open underneath with one main button. Settings and About are behind the gear. Results show in the status bar at the bottom; the main button shows working, done (green) or error (red).
@@ -25,7 +33,6 @@ The installer backs up previous installations to `%APPDATA%\SuperV-Backups` and 
 - **Split text:** one layer per line, word or character, each in its original place. Point text only, no Source Text keyframes or expressions, up to 300 pieces. The original is hidden, not deleted. Mixed styles inside one layer take the first character's style.
 - **Case:** UPPERCASE, lowercase or Title Case, including Source Text keyframes.
 - **Cursor:** types the text in from the layer start to its "in" marker with a blinking cursor (|, _, ▌ or █). Optional blinking after typing. Remove cursor takes it off again.
-- **Shapes:** circle, rounded rectangle, line or arrow, centred in the comp, in your colour.
 - **Comp size:** 1080p, 4K, Reels · Shorts · Story (1080×1920), Square, Portrait 4:5. Create a new comp, or resize the current one with content kept centred.
 - **Ease:** a draggable two-handle curve with Value and Speed graph views, presets from Sine to Back for in, out and in-out, a strength slider and editable curve values. Applies as native After Effects easing (speed and influence per dimension, one speed along spatial paths), between selected keyframes or on all keys.
 - **Spin:** rotate forever in place, or orbit around the layer's own position, clockwise or counter-clockwise. Speed and radius become sliders in Effect Controls; no keyframes. Stop removes it again.
@@ -81,7 +88,6 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 - **Loop:** IN/OUT/both and cycle, ping-pong, offset or continue. Select numeric properties with at least two keys. Zero intervals uses all keys.
 - **Wiggle:** Only speed and amount. Applies to Position, including separated dimensions. Reapplying reuses the editable sliders. Non-panel expressions are protected unless replacement is enabled.
 - **Counter:** From/to, duration, decimals, prefix/suffix and custom comma spacing. Digits count from the right: 3/3 gives `1,500,000`; 3/2 gives `15,00,000`. Select text or deselect everything to create a layer. Reapply to update formatting. The value remains editable in Effect Controls.
-- **Colours:** HEX entry, RGB readout, four recent swatches and shift-click pins. Recent colours change only when you apply or sample a colour; nothing is captured automatically. Select a colour property, or a text/shape layer, then apply. Applying colour to a keyed property writes at the playhead.
 - **GIF:** Comp/work-area/video source, width, FPS, palette, dithering and loops. RGB flattens onto a background. Alpha exports a grayscale mask. RGB + Alpha uses thresholded binary transparency; GIF cannot retain soft alpha. PNG frames are checked before encoding. Failed encoding preserves existing output. Cancel Encoding stops FFmpeg; rendering must finish its active frame first. Maximum 18,000 frames.
 
 ## About and uninstall
@@ -98,4 +104,8 @@ For connection problems, use **Settings > Reconnect to After Effects**. For an o
 
 GIF export and Exact crop use FFmpeg. The unpacked `ffmpeg.exe` is about 98 MB, over GitHub's 100 MB file limit, so the repository ships it as gzip parts (`SuperV/bin/ffmpeg.gz.000`, `.001`). Both **INSTALL.cmd** and the panel itself join and unpack those parts automatically the first time they are needed, and the panel says so in its status bar. Nothing to download.
 
-If you would rather supply your own build, run `scripts/Setup-Encoder.ps1` (optionally with `-EncoderPath C:\path\to\ffmpeg.exe`), or point **Settings > FFmpeg** at any ffmpeg.exe. A path set in `SuperV/config/defaults.json` is used as the default when Settings is empty. Installing over an existing SuperV keeps the encoder you already had.
+Once `ffmpeg.exe` exists, the two `.gz` parts are deleted, so the installed panel holds one copy of the encoder rather than one and a half.
+
+If you would rather supply your own build, run `scripts/Setup-Encoder.ps1` (optionally with `-EncoderPath C:\path\to\ffmpeg.exe`), or point **Settings > FFmpeg** at any ffmpeg.exe. A path set in `SuperV/config/defaults.json` is used as the default when Settings is empty.
+
+Installing over an existing SuperV keeps the encoder you already had, and an install that finds none in place falls back to the copies in `%APPDATA%\SuperV-Backups`. Those backup folders are never pruned automatically — each one holding a full encoder is about 100 MB, so clear out old ones yourself once an upgrade has proved good.
