@@ -11,9 +11,22 @@ $originalDebugBackup = $null
 $bundledEncoder = Join-Path $sourcePath 'bin/ffmpeg.exe'
 $keptEncoder = $null
 if (-not (Test-Path -LiteralPath $bundledEncoder)) {
+    $candidates = @()
     foreach ($folderName in @('SuperV','GetShitDoneByVK')) {
-        $candidate = Join-Path (Join-Path $env:APPDATA 'Adobe/CEP/extensions') (Join-Path $folderName 'bin/ffmpeg.exe')
-        if (Test-Path -LiteralPath $candidate) { $keptEncoder = Join-Path $env:TEMP ('superv-ffmpeg-' + [guid]::NewGuid().ToString('N') + '.exe'); Copy-Item -LiteralPath $candidate -Destination $keptEncoder; break }
+        $candidates += (Join-Path (Join-Path $env:APPDATA 'Adobe/CEP/extensions') (Join-Path $folderName 'bin/ffmpeg.exe'))
+    }
+    # Installing straight after an uninstall leaves the encoder only in the backups, newest first.
+    $backupRoot = Join-Path $env:APPDATA 'SuperV-Backups'
+    if (Test-Path -LiteralPath $backupRoot) {
+        $candidates += @(Get-ChildItem -LiteralPath $backupRoot -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName 'bin/ffmpeg.exe' })
+    }
+    foreach ($candidate in $candidates) {
+        if (-not (Test-Path -LiteralPath $candidate)) { continue }
+        if ((Get-Item -LiteralPath $candidate).Length -lt 1MB) { continue }
+        $keptEncoder = Join-Path $env:TEMP ('superv-ffmpeg-' + [guid]::NewGuid().ToString('N') + '.exe')
+        Copy-Item -LiteralPath $candidate -Destination $keptEncoder
+        break
     }
 }
 New-Item -ItemType Directory -Path $extensionParent -Force | Out-Null
