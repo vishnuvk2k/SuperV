@@ -21,6 +21,11 @@ Everything below is in 1.3.0 except the update check.
 - **Comp size presets** — 1080p, 4K, Reels/Shorts (1080×1920), Square and Story; one click to create a comp or resize the current one.
 - **Update check** — panel tells you when a newer version is on GitHub. (Note: the repo is private, so this needs either a public releases location or a token.)
 
+## References shared by VisHnu (kept outside the repo)
+
+- **Depth v1.0.2** by Yat Fung Leung (MIT licence). Spreads selected 2D layers into 3D depth for a parallax look: picks a camera lens (15–200 mm), spaces layers along Z, scales each one so it still looks the same size through the camera, and can add a Camera Controller null. A second button moves layers relative to an existing camera. Idea for SuperV: a **Depth** tile built our own way (no alert pop-ups, one undo step, works with the SuperV status bar). If any of its code is reused, its MIT notice must be kept.
+- **TextPlugin.jsxbin**. Compiled ExtendScript (about 3 MB), so its code cannot be read. Not decompiled; we will use its features as reference once VisHnu lists or screenshots the ones he likes.
+
 ## Since 1.3.0 (in code, not packaged yet)
 - Preset preview tiles fixed (letters no longer stack one per line).
 - Shapes and Colour tools removed from the panel.
