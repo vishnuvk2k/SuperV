@@ -18,7 +18,6 @@
   var lastError = '', aeVersion = '';
   function status(message, kind) { if (kind === 'error') lastError = String(message); $('status').textContent = String(message); $('statusbar').className = kind || ''; }
   function save() { try { localStorage.setItem('vk.gsd.settings.v1', JSON.stringify(state)); } catch (e) { status('Settings could not be saved: ' + e.message, 'error'); } }
-  function validHex(s) { return typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s); }
   function load() {
     try { state = JSON.parse(localStorage.getItem('vk.gsd.settings.v1') || '{}'); } catch (_) { state = {}; }
     state = Object.assign({}, defaults, state);

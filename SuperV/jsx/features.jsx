@@ -1,6 +1,6 @@
-/* VK 1.1: alpha crop, verified rendering, expressions and colour tracking. */
+/* SuperV: wiggle, verified frame rendering, and fast or exact comp cropping. */
 function VKFeatures(h) {
-    var pendingCrop = null, renderState = null, watched = [], watchedComp = null;
+    var pendingCrop = null, renderState = null;
     var moduleRoot = h.moduleRoot || new File($.fileName).parent.parent;
     function transform(l, name) { return l.property('ADBE Transform Group').property(name); }
     function wiggle(o) {
@@ -227,49 +227,11 @@ function VKFeatures(h) {
         if(notes.length)result.message+='\n'+notes.join('\n');
         return result;
     }
-    function colourTargets(c) {
-        var selected=h.props(c), result=[],i;
-        for(i=0;i<selected.length;i++)if(selected[i].propertyValueType===PropertyValueType.COLOR)result.push({p:selected[i],text:false});
-        if(!result.length)for(i=0;i<c.selectedLayers.length;i++){
-            var l=c.selectedLayers[i],text=l.property('ADBE Text Properties');
-            if(text) result.push({p:text.property('ADBE Text Document'),text:true});
-            else h.walk(l,function(p){if(p.propertyValueType===PropertyValueType.COLOR)result.push({p:p,text:false});});
-        }
-        return result;
-    }
-    function hex(v) {var s='#';for(var i=0;i<3;i++)s+=('0'+Math.round(Math.max(0,Math.min(1,v[i]))*255).toString(16)).slice(-2);return s.toUpperCase();}
-    function readColours(targets) {
-        var result=[];
-        for(var i=0;i<targets.length;i++)try{
-            var target=targets[i],v=target.p.value;
-            if(target.text){if(!v.applyFill)continue;v=v.fillColor;}
-            var s=hex(v),found=false;for(var j=0;j<result.length;j++)if(result[j]===s)found=true;
-            if(!found)result.push(s);
-        }catch(ignore){}
-        return result;
-    }
-    function colour(o) {
-        var c=h.comp(),targets=colourTargets(c),i;
-        if(!targets.length && watchedComp===c)targets=watched;
-        if(!targets.length)h.fail('Select a Fill/Stroke colour property, a shape layer, or a text layer.');
-        watched=targets;watchedComp=c;
-        if(o.sample)return {message:'Sampled AE colours.',colours:readColours(targets)};
-        if(!/^#[0-9a-f]{6}$/i.test(o.hex))h.fail('Enter a six-digit HEX colour, for example #46A2DA.');
-        for(i=0;i<targets.length;i++)if(h.owner(targets[i].p).locked)h.fail('Unlock the colour layers first.');
-        var rgb=[parseInt(o.hex.substr(1,2),16)/255,parseInt(o.hex.substr(3,2),16)/255,parseInt(o.hex.substr(5,2),16)/255];
-        for(i=0;i<targets.length;i++){
-            var t=targets[i],p=t.p,v=p.value;
-            if(t.text){v.applyFill=true;v.fillColor=rgb;}
-            else v=rgb.concat([v.length>3?v[3]:1]);
-            if(p.numKeys)p.setValueAtTime(c.time,v);else p.setValue(v);
-        }
-        return {message:'Applied '+o.hex+' to '+targets.length+' colour properties.'};
-    }
     function duplicateExternal() {
         var f=new File(moduleRoot.fsName+'/vendor/True Comp Duplicator.jsx');
         if(!f.exists)h.fail('True Comp Duplicator.jsx is missing. Reinstall the complete package.');
         $.evalFile(f);
         return {message:'True Comp Duplicator opened. Select compositions in the Project panel and use its DUPLICATE button.'};
     }
-    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,colour:colour,duplicateExternal:duplicateExternal};
+    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,duplicateExternal:duplicateExternal};
 }

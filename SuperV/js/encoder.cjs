@@ -202,6 +202,8 @@ function unpackBundled(binDir) {
         if (fs.statSync(temp).size < 1000000) throw new Error('The unpacked encoder looks incomplete.');
         fs.renameSync(temp, target);
         done = true;
+        // The packed parts are only needed once; reclaim their disk space.
+        parts.forEach(part => { try { fs.unlinkSync(part); } catch (_) {} });
         resolve(target);
       } catch (e) { fail(e); }
     });

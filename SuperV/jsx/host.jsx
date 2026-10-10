@@ -131,7 +131,7 @@ $.global.__VK_GSD_HOST__ = (function () {
     var featureFile = new File(hostFile.parent.fsName+'/features.jsx');
     if(!featureFile.exists)fail('Required script is missing: '+featureFile.fsName);
     $.evalFile(featureFile);
-    var extra=VKFeatures({moduleRoot:moduleRoot,comp:comp,fail:fail,num:num,props:props,owner:owner,numeric:numeric,setExpression:setExpression,walk:walk,encode:encode});
+    var extra=VKFeatures({moduleRoot:moduleRoot,comp:comp,fail:fail,num:num,setExpression:setExpression,walk:walk});
     for(var feature in extra)if(extra.hasOwnProperty(feature))actions[feature]=extra[feature];
     var moreFile = new File(hostFile.parent.fsName+'/more.jsx');
     if(!moreFile.exists)fail('Required script is missing: '+moreFile.fsName);

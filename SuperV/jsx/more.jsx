@@ -1,4 +1,4 @@
-/* SuperV 1.3: text background box, split text, change case, typewriter cursor, shape and comp presets. ES3 only. */
+/* SuperV: text background box, split text, change case, typewriter cursor, comp presets, spin and depth. ES3 only. */
 function VKMore(h) {
     function hexToRgb(hex) {
         if (!/^#[0-9a-f]{6}$/i.test(String(hex))) h.fail('Enter a six-digit HEX colour, for example #0080FF.');
@@ -201,54 +201,6 @@ function VKMore(h) {
         return { message: 'Removed the cursor from ' + plural(n, 'text layer') + '.' };
     }
 
-    /* ---------- Shape presets ---------- */
-    function vectors(L) { return L.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group'); }
-    function openPath(points) {
-        var s = new Shape(), ins = [], outs = [], k;
-        for (k = 0; k < points.length; k++) { ins.push([0, 0]); outs.push([0, 0]); }
-        s.vertices = points; s.inTangents = ins; s.outTangents = outs; s.closed = false;
-        return s;
-    }
-    function shapePreset(o) {
-        var c = h.comp(), kind = o.kind, rgb = hexToRgb(o.color);
-        var names = { circle: 'Circle', roundrect: 'Rounded Rectangle', line: 'Line', arrow: 'Arrow' };
-        if (!names[kind]) h.fail('Choose a shape.');
-        var L = c.layers.addShape();
-        L.name = 'SuperV ' + names[kind];
-        L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group');
-        L.property('ADBE Root Vectors Group').property(1).name = names[kind];
-        if (kind === 'circle') {
-            var d = h.num(o.size, 1, 30000);
-            vectors(L).addProperty('ADBE Vector Shape - Ellipse');
-            vectors(L).addProperty('ADBE Vector Graphic - Fill');
-            vectors(L).property(1).property('ADBE Vector Ellipse Size').setValue([d, d]);
-            vectors(L).property(2).property('ADBE Vector Fill Color').setValue(rgb);
-        } else if (kind === 'roundrect') {
-            var w = h.num(o.width, 1, 30000), ht = h.num(o.height, 1, 30000), r = h.num(o.roundness, 0, 15000);
-            vectors(L).addProperty('ADBE Vector Shape - Rect');
-            vectors(L).addProperty('ADBE Vector Graphic - Fill');
-            vectors(L).property(1).property('ADBE Vector Rect Size').setValue([w, ht]);
-            vectors(L).property(1).property('ADBE Vector Rect Roundness').setValue(r);
-            vectors(L).property(2).property('ADBE Vector Fill Color').setValue(rgb);
-        } else {
-            var len = h.num(o.size, 1, 30000), sw = h.num(o.stroke, 0.5, 1000);
-            vectors(L).addProperty('ADBE Vector Shape - Group');
-            vectors(L).property(1).property('ADBE Vector Shape').setValue(openPath([[-len / 2, 0], [len / 2, 0]]));
-            if (kind === 'arrow') {
-                var hd = Math.max(sw * 2.4, len * 0.12);
-                vectors(L).addProperty('ADBE Vector Shape - Group');
-                vectors(L).property(2).property('ADBE Vector Shape').setValue(openPath([[len / 2 - hd, -hd * 0.8], [len / 2, 0], [len / 2 - hd, hd * 0.8]]));
-            }
-            vectors(L).addProperty('ADBE Vector Graphic - Stroke');
-            var stroke = vectors(L).property(vectors(L).numProperties);
-            stroke.property('ADBE Vector Stroke Color').setValue(rgb);
-            stroke.property('ADBE Vector Stroke Width').setValue(sw);
-            try { stroke.property('ADBE Vector Stroke Line Cap').setValue(2); stroke.property('ADBE Vector Stroke Line Join').setValue(2); } catch (noCap) {}
-        }
-        transform(L, 'ADBE Position').setValue([c.width / 2, c.height / 2]);
-        return { message: 'Added a ' + names[kind].toLowerCase() + ' in the centre of the comp.' };
-    }
-
     /* ---------- Comp size presets ---------- */
     var sizes = {
         hd: [1920, 1080, '1080p'], uhd: [3840, 2160, '4K'], vertical: [1080, 1920, 'Reels · Shorts · Story'],
@@ -411,5 +363,5 @@ function VKMore(h) {
         }
         return { message: 'Spread ' + plural(used.length, 'layer') + ' in depth, ' + spacing + ' px apart' + (o.keepSize ? ', same size through the camera' : '') + '.' + made + (skipped ? ' Skipped ' + plural(skipped, 'layer') + ' (cameras, lights, parented, locked or animated).' : '') };
     }
-    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor, shapePreset: shapePreset, compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
+    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor,  compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
 }

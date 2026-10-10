@@ -29,7 +29,11 @@ foreach ($folderName in @('SuperV','GetShitDoneByVK')) {
     Write-Output "Previous installation backed up to $backupPath"
 }
 Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Recurse
-if ($keptEncoder) { Move-Item -LiteralPath $keptEncoder -Destination (Join-Path $destinationPath 'bin/ffmpeg.exe') -Force; Write-Output 'Kept your existing FFmpeg encoder.' }
+if ($keptEncoder) {
+    Move-Item -LiteralPath $keptEncoder -Destination (Join-Path $destinationPath 'bin/ffmpeg.exe') -Force
+    Get-ChildItem -LiteralPath (Join-Path $destinationPath 'bin') -Filter 'ffmpeg.gz.*' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Write-Output 'Kept your existing FFmpeg encoder.'
+}
 else {
     # The encoder ships as gzip parts so no single file is too large to distribute.
     $binDest = Join-Path $destinationPath 'bin'
@@ -46,7 +50,10 @@ else {
             try { $unzip.CopyTo($target) } finally { $unzip.Dispose() }
         } finally { $target.Dispose(); $source.Dispose() }
         Remove-Item -LiteralPath $tempGz -Force -ErrorAction SilentlyContinue
-        if ((Get-Item -LiteralPath $encoderExe).Length -gt 1MB) { Write-Output 'FFmpeg ready.' }
+        if ((Get-Item -LiteralPath $encoderExe).Length -gt 1MB) {
+            foreach ($part in $parts) { Remove-Item -LiteralPath $part.FullName -Force -ErrorAction SilentlyContinue }
+            Write-Output 'FFmpeg ready.'
+        }
         else { Remove-Item -LiteralPath $encoderExe -Force -ErrorAction SilentlyContinue; Write-Output 'FFmpeg did not unpack. Run scripts\Setup-Encoder.ps1 for GIF export and Exact crop.' }
     }
     elseif (-not (Test-Path -LiteralPath $encoderExe)) { Write-Output 'FFmpeg is not included. Run scripts\Setup-Encoder.ps1, then INSTALL.cmd again, for GIF export and Exact crop.' }
