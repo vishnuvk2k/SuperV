@@ -1,4 +1,4 @@
-# SuperV 1.3.0
+# SuperV 1.3.1
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
 
@@ -17,7 +17,7 @@ The installer backs up previous installations to `%APPDATA%\SuperV-Backups` and 
 
 **New layout.** Two big tabs, **Effects** and **Text**. Each shows tool tiles; click a tile and its options open underneath with one main button. Settings and About are behind the gear. Results show in the status bar at the bottom; the main button shows working, done (green) or error (red).
 
-**Effects tiles:** Null · Crop · Keyframes (copy/paste) · Loop · Wiggle · Counter · **Shapes** · **Comp size** · Colour · GIF · Organize · Duplicate.
+**Effects tiles:** Null · Crop · Keyframes (copy/paste) · **Ease** · Loop · Wiggle · **Spin** · **Depth** · Counter · **Comp size** · GIF · Organize · Duplicate.
 
 **Text tiles:** Animate (the 15 presets) · **Text box** · **Split text** · **Case** · **Cursor**.
 
@@ -27,7 +27,11 @@ The installer backs up previous installations to `%APPDATA%\SuperV-Backups` and 
 - **Cursor:** types the text in from the layer start to its "in" marker with a blinking cursor (|, _, ▌ or █). Optional blinking after typing. Remove cursor takes it off again.
 - **Shapes:** circle, rounded rectangle, line or arrow, centred in the comp, in your colour.
 - **Comp size:** 1080p, 4K, Reels · Shorts · Story (1080×1920), Square, Portrait 4:5. Create a new comp, or resize the current one with content kept centred.
-- **Colour:** the recent-colour strip is gone. The Colour tile has a picker, HEX, Sample from AE, up to 12 pinned colours and Apply. Nothing is captured automatically.
+- **Ease:** a draggable two-handle curve with Value and Speed graph views, presets from Sine to Back for in, out and in-out, a strength slider and editable curve values. Applies as native After Effects easing (speed and influence per dimension, one speed along spatial paths), between selected keyframes or on all keys.
+- **Spin:** rotate forever in place, or orbit around the layer's own position, clockwise or counter-clockwise. Speed and radius become sliders in Effect Controls; no keyframes. Stop removes it again.
+- **Depth:** spread selected 2D layers along Z for parallax, with lens choice, spacing and optional size compensation so nothing appears to move until the camera does. Uses an existing camera, or adds one with a rig null.
+- **Colour and Shapes were removed** from the panel.
+- **About** shows the connected After Effects version, whether FFmpeg was found, tool counts, Copy diagnostics, Install folder and a GitHub link.
 
 ## Text animation — 15 presets
 

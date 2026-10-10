@@ -429,6 +429,12 @@
   $('show-output').onclick = function () { if (outputPath && node) node('child_process').execFile('explorer.exe', ['/select,', outputPath], { windowsHide: true }, function () {}); };
   $('copy-diag').onclick = function () { status(copyText(diagnostics()) ? 'Diagnostics copied. Paste them into a message or a GitHub issue.' : 'Could not copy. The details are in the About panel.', 'success'); };
   $('open-folder').onclick = function () { if (node && extensionRoot) node('child_process').execFile('explorer.exe', [extensionRoot.replace(/\//g, '\\')], { windowsHide: true }, function () {}); else status('The install folder is only available inside After Effects.', 'error'); };
+  $('open-repo').onclick = function () {
+    var url = 'https://github.com/vishnuvk2k/SuperV';
+    try { if (window.cep && window.cep.util && window.cep.util.openURLInDefaultBrowser) { window.cep.util.openURLInDefaultBrowser(url); return; } } catch (e) {}
+    if (node) { try { node('child_process').exec('start "" "' + url + '"', { windowsHide: true }); return; } catch (e2) {} }
+    status(copyText(url) ? 'Repository link copied: ' + url : url, 'success');
+  };
   $('reset-settings').onclick = function () { try { localStorage.removeItem('vk.gsd.settings.v1'); } catch (_) {} location.reload(); };
   all('input,select').forEach(function (el) {
     if (!el.id || el.id === 'encoder-path') return;
