@@ -1,4 +1,13 @@
-# SuperV 1.2.2 validation
+# SuperV 1.3.0 validation
+
+## 1.3.0 checks
+
+- Syntax of every panel and host script; every panel control and button is wired to an existing host action.
+- New layout rendered in a browser at 360 px wide: every tile, drawer, settings and the status bar (screenshots checked). Hidden controls stay hidden.
+- Simulated host: text box (three expressions, parented to the text), all four shape presets, title/upper case with keyframe-safe rewriting, comp resize keeping static and keyed layers centred and parented layers untouched, cursor expression output over time, and split text positions for left- and centre-aligned lines, words and characters.
+- **Not yet run inside native After Effects.**
+
+## 1.2.2
 
 ## 1.2.2 changes
 

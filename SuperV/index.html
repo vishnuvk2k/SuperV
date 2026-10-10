@@ -1,52 +1,307 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SuperV</title><link rel="stylesheet" href="css/panel.css"></head>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SuperV</title>
+<link rel="stylesheet" href="css/panel.css">
+</head>
 <body>
-<header><div class="brand"><strong>SuperV</strong></div><button id="settings-toggle" class="icon-button" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 3-1 3-3 1-2 4 2 3 1 4 4 1 3 2 4-2 1-4 3-3-2-4-3-1-2-3z"/><circle cx="12" cy="12" r="3"/></svg></button></header>
-<nav aria-label="Tools"><button data-tab="tools" class="active">TOOLS</button><button data-tab="motion">MOTION</button><button data-tab="text">TEXT</button><button data-tab="export">EXPORT</button></nav>
-<div id="preview-notice" hidden>DESIGN PREVIEW · OPEN IN AFTER EFFECTS TO APPLY TOOLS</div>
+<header>
+  <div class="brand">SuperV</div>
+  <button id="settings-toggle" class="icon-button" title="Settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+<nav class="tabs" aria-label="Sections">
+  <button data-tab="effects" class="active">Effects</button>
+  <button data-tab="text">Text</button>
+</nav>
+<div id="preview-notice" hidden>Design preview · open in After Effects to use the tools</div>
 <main>
-<section id="tools" class="tab active">
-  <input id="tool-search" type="search" placeholder="SEARCH TOOLS…" aria-label="Search tools">
-  <div class="tool-grid">
-    <button class="tool" data-action="null" title="Create a null using the options below"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 7v10M7 12h10"/></svg>CREATE NULL</button>
-    <button class="tool" data-action="crop" title="Remove transparent borders around the artwork"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8 8 12 12M8 16 20 4"/></svg>CROP COMP</button>
-    <button class="tool" data-action="copyKeys"><svg viewBox="0 0 24 24"><rect x="7" y="6" width="13" height="15" rx="2"/><path d="M16 6V3H3v14h4"/></svg>COPY KEYS</button>
-    <button class="tool" data-action="pasteKeys"><svg viewBox="0 0 24 24"><path d="M8 4H4v17h16V4h-4"/><rect x="8" y="2" width="8" height="5" rx="1"/></svg>PASTE KEYS</button>
-    <button class="tool" data-action="organize"><svg viewBox="0 0 24 24"><path d="M2 6V3h7l3 3h10v15H2zM2 8h20"/></svg>ORGANIZE FILES</button>
-    <button class="tool" data-action="duplicateExternal"><svg viewBox="0 0 24 24"><path d="M3 12h18m-7-7 7 7-7 7"/></svg>TRUE COMP DUPLICATOR</button>
+
+<!-- ================= EFFECTS ================= -->
+<section id="effects" class="tab active">
+  <div class="tiles">
+    <button class="tile" data-tool="null"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8M8 12h8"/></svg><span>Null</span></button>
+    <button class="tile" data-tool="crop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v16h16"/><path d="M2 6h16v16"/></svg><span>Crop</span></button>
+    <button class="tile" data-tool="keys"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6l4.5 6L7 18l-4.5-6zM17 6l4.5 6-4.5 6-4.5-6z"/></svg><span>Keyframes</span></button>
+    <button class="tile" data-tool="loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 2.5v4.5h-4.5M6 21.5V17h4.5"/></svg><span>Loop</span></button>
+    <button class="tile" data-tool="wiggle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c1.7-5 3.3-5 5 0s3.3 5 5 0 3.3-5 5 0 3.3 5 5 0"/></svg><span>Wiggle</span></button>
+    <button class="tile" data-tool="counter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3 7.5 21M16.5 3l-2 18M4 8.5h16.5M3.5 15.5H20"/></svg><span>Counter</span></button>
+    <button class="tile" data-tool="shapes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="5"/><rect x="11" y="11" width="10" height="10" rx="2"/></svg><span>Shapes</span></button>
+    <button class="tile" data-tool="comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="13" height="9" rx="1.2"/><rect x="16" y="3" width="6" height="18" rx="1.2"/></svg><span>Comp size</span></button>
+    <button class="tile" data-tool="colour"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4 5 6.5 8.2 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 11.2 8 8 12 3z"/></svg><span>Colour</span></button>
+    <button class="tile" data-tool="gif"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M9 10H7v4h2v-2M12 10v4M15 14v-4h2.8M15 12h2"/></svg><span>GIF</span></button>
+    <button class="tile" data-tool="organize"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6V4h6l2 2h10v14H3z"/><path d="M3 9h18"/></svg><span>Organize</span></button>
+    <button class="tile" data-tool="duplicate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Duplicate</span></button>
   </div>
-  <details open><summary>NULL OPTIONS</summary><label>POSITION<select id="null-position"><option value="comp">COMP CENTRE</option><option value="selection">SELECTION CENTRE · 2D</option></select></label><label class="check"><input id="null-parent" type="checkbox">PARENT SELECTED LAYERS</label></details>
-  <details open><summary>CROP COMP OPTIONS</summary><label>MODE<select id="crop-mode"><option value="fast">FAST · LAYER BOUNDS</option><option value="exact">EXACT · RENDERED PIXELS</option></select></label><label>ARTWORK<select id="crop-scope"><option value="all">ALL VISIBLE LAYERS</option><option value="selection">SELECTED LAYERS</option></select></label><label>MEASURE<select id="crop-range"><option value="comp">FULL ANIMATION</option><option value="current">CURRENT FRAME</option><option value="workarea">WORK AREA</option></select></label><label>PADDING · PX<input id="crop-padding" type="number" min="0" max="2000" value="0"></label><button id="crop-cancel" hidden>CANCEL CROP MEASUREMENT</button><p class="hint">FAST USES LAYER BOXES AND TAKES ABOUT A SECOND; GLOWS, SHADOWS AND PRECOMP CONTENT MAY NEED PADDING OR EXACT. EXACT RENDERS EVERY FRAME AT HALF SIZE. CURRENT FRAME / WORK AREA MAY CUT ARTWORK AT OTHER TIMES. 2D COMPS; PRECOMPOSE 3D ARTWORK FIRST.</p></details>
-  <details><summary>KEYFRAME OPTIONS</summary><label class="check"><input id="keys-expressions" type="checkbox">INCLUDE EXPRESSIONS</label><label>PASTE<select id="keys-offset"><option value="playhead">AT PLAYHEAD</option><option value="original">ORIGINAL TIMES</option></select></label><p class="hint" id="clipboard-info">SELECT KEYFRAMES IN THE TIMELINE, THEN COPY. PASTE TO MATCHING PROPERTIES OR SELECT A COMPATIBLE TARGET PROPERTY.</p></details>
-  <details><summary>TRUE COMP DUPLICATOR</summary><p class="hint">OPENS YOUR SUPPLIED TRUE COMP DUPLICATOR V3.9.14 IN ITS OWN WINDOW. SELECT COMPS IN THE PROJECT PANEL, THEN CHOOSE COPIES, NAMING, SUBCOMP DEPTH, FOOTAGE AND EXPRESSION OPTIONS THERE.</p></details>
-  <p class="hint">ORGANIZE FILES GROUPS ASSETS UNDER YOUR PROJECT NAME. COMPS / PRECOMPS AND ONE FOLDER PER FILE TYPE. EMPTY OLD FOLDERS ARE REMOVED. SOURCE FILES STAY IN PLACE. UNDO RESTORES THE LAYOUT.</p>
+
+  <div class="drawer">
+    <p class="empty">Pick a tool to see its options.</p>
+
+    <div class="opts" data-tool="null" hidden>
+      <h3>Create null</h3>
+      <label>Position<select id="null-position"><option value="comp">Comp centre</option><option value="selection">Centre of selected layers (2D)</option></select></label>
+      <label class="check"><input id="null-parent" type="checkbox">Parent selected layers to it</label>
+      <button class="primary" data-action="null"><span>Create null</span></button>
+    </div>
+
+    <div class="opts" data-tool="crop" hidden>
+      <h3>Crop comp</h3>
+      <div class="seg" id="crop-mode"><button data-value="fast" class="on">Fast</button><button data-value="exact">Exact</button></div>
+      <label>Artwork<select id="crop-scope"><option value="all">All visible layers</option><option value="selection">Selected layers</option></select></label>
+      <label>Measure<select id="crop-range"><option value="comp">Full animation</option><option value="current">Current frame</option><option value="workarea">Work area</option></select></label>
+      <label>Padding (px)<input id="crop-padding" type="number" min="0" max="2000" value="0"></label>
+      <button class="primary" data-action="crop"><span>Crop comp</span></button>
+      <button id="crop-cancel" class="secondary" hidden>Cancel measurement</button>
+      <p class="hint">Fast uses layer boxes and takes about a second; glows, shadows and precomp content may need padding or Exact. Exact renders every frame at half size. 2D comps only.</p>
+    </div>
+
+    <div class="opts" data-tool="keys" hidden>
+      <h3>Copy and paste keyframes</h3>
+      <label class="check"><input id="keys-expressions" type="checkbox">Include expressions</label>
+      <label>Paste<select id="keys-offset"><option value="playhead">At the playhead</option><option value="original">At the original times</option></select></label>
+      <div class="pair"><button class="primary" data-action="copyKeys"><span>Copy keys</span></button><button class="primary" data-action="pasteKeys"><span>Paste keys</span></button></div>
+      <p class="hint" id="clipboard-info">Select keyframes on one layer and copy. Then select target layers or a matching property and paste.</p>
+    </div>
+
+    <div class="opts" data-tool="loop" hidden>
+      <h3>Loop</h3>
+      <div class="row">
+        <label>Direction<select id="loop-direction"><option value="out">Out</option><option value="in">In</option><option value="both">In and out</option></select></label>
+        <label>Type<select id="loop-type"><option value="cycle">Cycle</option><option value="pingpong">Ping-pong</option><option value="offset">Offset</option><option value="continue">Continue</option></select></label>
+      </div>
+      <label>Key intervals (0 = all)<input id="loop-count" type="number" value="0" min="0" max="9999"></label>
+      <label class="check"><input id="loop-replace" type="checkbox">Replace existing expressions</label>
+      <button class="primary" data-action="loop"><span>Apply loop</span></button>
+      <button class="secondary" data-action="removeExpressions">Remove SuperV expressions</button>
+      <p class="hint">Select properties with at least two keyframes.</p>
+    </div>
+
+    <div class="opts" data-tool="wiggle" hidden>
+      <h3>Wiggle position</h3>
+      <div class="row">
+        <label>Speed (per sec)<input id="wiggle-speed" type="number" value="1" min="0" max="1000" step="0.1" required></label>
+        <label>Amount (px)<input id="wiggle-pixels" type="number" value="50" min="0" max="100000" step="0.1" required></label>
+      </div>
+      <label class="check"><input id="wiggle-replace" type="checkbox">Replace existing expressions</label>
+      <button class="primary" data-action="wiggle"><span>Apply wiggle</span></button>
+      <button class="secondary" data-action="removeExpressions">Remove SuperV expressions</button>
+      <p class="hint">Edit Wiggle Speed and Wiggle Amount in Effect Controls at any time.</p>
+    </div>
+
+    <div class="opts" data-tool="counter" hidden>
+      <h3>Number counter</h3>
+      <div class="counter-preview" aria-live="polite"><output id="counter-preview"></output></div>
+      <div class="row">
+        <label>From<input id="counter-from" type="number" step="any" required value="0"></label>
+        <label>To<input id="counter-to" type="number" step="any" required value="1000"></label>
+      </div>
+      <div class="row">
+        <label>Duration (s)<input id="counter-duration" type="number" min="0.05" max="3600" step="0.01" value="2"></label>
+        <label>Decimals<input id="counter-decimals" type="number" min="0" max="6" value="0"></label>
+      </div>
+      <div class="row">
+        <label>Prefix<input id="counter-prefix" type="text" placeholder="₹" maxlength="24"></label>
+        <label>Suffix<input id="counter-suffix" type="text" placeholder="%" maxlength="24"></label>
+      </div>
+      <label class="check"><input id="counter-separator" type="checkbox" checked>Commas</label>
+      <div id="counter-comma-options" class="row">
+        <label>First after (digits)<input id="counter-first" type="number" min="1" max="12" step="1" value="3" required></label>
+        <label>Then every<input id="counter-every" type="number" min="1" max="12" step="1" value="3" required></label>
+      </div>
+      <label class="check"><input id="counter-replace" type="checkbox">Replace existing expressions</label>
+      <button class="primary" data-action="counter"><span>Create counter</span></button>
+      <p class="hint">Uses selected text layers, or makes a new one. 3 / 3 gives 1,500,000 and 3 / 2 gives 15,00,000.</p>
+    </div>
+
+    <div class="opts" data-tool="shapes" hidden>
+      <h3>Shape</h3>
+      <div class="seg" id="shape-kind"><button data-value="circle" class="on">Circle</button><button data-value="roundrect">Rounded</button><button data-value="line">Line</button><button data-value="arrow">Arrow</button></div>
+      <div class="row" data-show-for="shape-kind" data-show="circle line arrow">
+        <label><span data-label-for="shape-kind" data-circle="Diameter (px)" data-line="Length (px)" data-arrow="Length (px)">Diameter (px)</span><input id="shape-size" type="number" min="1" max="30000" value="400"></label>
+      </div>
+      <div class="row" data-show-for="shape-kind" data-show="roundrect">
+        <label>Width<input id="shape-width" type="number" min="1" max="30000" value="600"></label>
+        <label>Height<input id="shape-height" type="number" min="1" max="30000" value="300"></label>
+      </div>
+      <div class="row" data-show-for="shape-kind" data-show="roundrect"><label>Corner radius<input id="shape-round" type="number" min="0" max="15000" value="40"></label></div>
+      <div class="row" data-show-for="shape-kind" data-show="line arrow"><label>Stroke width<input id="shape-stroke" type="number" min="0.5" max="1000" value="12"></label></div>
+      <label>Colour<input id="shape-colour" type="color" value="#0080ff"></label>
+      <button class="primary" data-action="shapePreset"><span>Add shape</span></button>
+      <p class="hint">Added in the centre of the active comp.</p>
+    </div>
+
+    <div class="opts" data-tool="comp" hidden>
+      <h3>Comp size</h3>
+      <div class="chips" id="comp-preset">
+        <button data-value="hd" class="on">1080p<small>1920×1080</small></button>
+        <button data-value="uhd">4K<small>3840×2160</small></button>
+        <button data-value="vertical">Reels · Story<small>1080×1920</small></button>
+        <button data-value="square">Square<small>1080×1080</small></button>
+        <button data-value="portrait">Portrait 4:5<small>1080×1350</small></button>
+      </div>
+      <div class="seg" id="comp-mode"><button data-value="create" class="on">New comp</button><button data-value="resize">Resize current</button></div>
+      <div class="row" data-show-for="comp-mode" data-show="create">
+        <label>Frame rate<input id="comp-fps" type="number" min="1" max="120" step="0.001" value="30"></label>
+        <label>Duration (s)<input id="comp-duration" type="number" min="0.1" max="10800" step="0.1" value="10"></label>
+      </div>
+      <label class="check" data-show-for="comp-mode" data-show="resize"><input id="comp-center" type="checkbox" checked>Keep content centred</label>
+      <button class="primary" data-action="compPreset"><span>Apply size</span></button>
+    </div>
+
+    <div class="opts" data-tool="colour" hidden>
+      <h3>Colour</h3>
+      <div class="colour-now">
+        <label class="swatch-big" title="Pick a colour"><span id="colour-swatch"></span><input id="new-colour" type="color" value="#0080ff" aria-label="Pick a colour"></label>
+        <label class="hex">HEX<input id="colour-hex" type="text" value="#0080FF" maxlength="7" spellcheck="false"></label>
+        <span id="colour-rgb">0, 128, 255</span>
+      </div>
+      <div class="pair"><button class="secondary" id="sample-colour">Sample from AE</button><button class="secondary" id="pin-colour">Pin colour</button></div>
+      <div class="swatch-row"><span class="mini-label">Pinned</span><div id="pinned-swatches"></div></div>
+      <div class="swatch-row" id="sampled-row" hidden><span class="mini-label">From AE</span><div id="sampled-swatches"></div></div>
+      <button class="primary" id="apply-colour" data-busy-lock><span>Apply colour</span></button>
+      <p class="hint">Select a colour property, or a shape or text layer, then apply. Click a swatch to use it; shift-click a pinned swatch to unpin it.</p>
+    </div>
+
+    <div class="opts" data-tool="gif" hidden>
+      <h3>Export GIF</h3>
+      <div class="export-stage checker"><span>SuperV</span><img id="gif-preview" alt="Exported GIF preview" hidden></div>
+      <div class="seg" id="gif-source"><button data-value="comp" class="on">Composition</button><button data-value="video">Video file</button></div>
+      <div id="video-row" hidden><button id="pick-video" class="secondary">Choose video</button><p class="file-label" id="video-label">No file selected</p></div>
+      <label id="gif-range-row">Range<select id="gif-range"><option value="workarea">Work area</option><option value="comp">Full composition</option></select></label>
+      <div class="row">
+        <label>Width (px)<input id="gif-width" type="number" min="16" max="4096" value="800" step="1"></label>
+        <label>FPS<input id="gif-fps" type="number" min="1" max="50" value="24"></label>
+      </div>
+      <label>Channels<select id="gif-channels"><option value="rgb">RGB</option><option value="alpha">Alpha</option><option value="rgba">RGB + alpha</option></select></label>
+      <label id="gif-background-row">Background<input type="color" id="gif-background" value="#202124"></label>
+      <label id="gif-threshold-row" hidden>Alpha threshold<input id="gif-threshold" type="number" min="0" max="255" value="128"></label>
+      <div class="row">
+        <label>Colours<select id="gif-colours"><option>256</option><option>128</option><option>64</option><option>32</option></select></label>
+        <label>Dither<select id="gif-dither"><option value="sierra2_4a">Smooth</option><option value="bayer">Pattern</option><option value="none">None</option></select></label>
+      </div>
+      <label>Loop<select id="gif-loop"><option value="0">Forever</option><option value="-1">Play once</option><option value="1">Repeat once</option><option value="2">Repeat twice</option></select></label>
+      <p class="hint" id="channel-hint">RGB flattens transparency onto the background colour.</p>
+      <button id="export-gif" class="primary"><span>Export GIF</span></button>
+      <button id="cancel-export" class="secondary" hidden>Cancel</button>
+      <div id="export-result" hidden><button id="show-output" class="secondary">Show exported file</button><span id="output-size" class="badge"></span></div>
+    </div>
+
+    <div class="opts" data-tool="organize" hidden>
+      <h3>Organize project</h3>
+      <p class="hint">Groups everything under a folder named after your project: main comps, precomps, and one folder per file type. Empty old folders are removed; files on disk are not touched. Undo restores the old layout.</p>
+      <button class="primary" data-action="organize"><span>Organize project</span></button>
+    </div>
+
+    <div class="opts" data-tool="duplicate" hidden>
+      <h3>True Comp Duplicator</h3>
+      <p class="hint">Opens True Comp Duplicator in its own window. Select comps in the Project panel, then choose copies, naming and options there.</p>
+      <button class="primary" data-action="duplicateExternal"><span>Open duplicator</span></button>
+    </div>
+  </div>
 </section>
-<section id="motion" class="tab">
-  <h2>LOOP</h2><div class="row"><label>DIRECTION<select id="loop-direction"><option value="out">OUT</option><option value="in">IN</option><option value="both">IN + OUT</option></select></label><label>TYPE<select id="loop-type"><option value="cycle">CYCLE</option><option value="pingpong">PING-PONG</option><option value="offset">OFFSET</option><option value="continue">CONTINUE</option></select></label></div><label>KEY INTERVALS · 0 = ALL<input id="loop-count" type="number" value="0" min="0" max="9999"></label><button class="primary" data-action="loop">APPLY LOOP</button><p class="hint">SELECT NUMERIC PROPERTIES WITH AT LEAST TWO KEYS.</p>
-  <hr><h2>WIGGLE</h2><div class="row"><label>WIGGLE SPEED (WIGS/SEC)<input id="wiggle-speed" type="number" value="1.0" min="0" max="1000" step="0.1" required></label><label>WIGGLE AMOUNT (PIXELS)<input id="wiggle-pixels" type="number" value="50.0" min="0" max="100000" step="0.1" required></label></div><button class="primary" data-action="wiggle">APPLY WIGGLE</button><p class="hint">APPLIES TO SELECTED LAYERS’ POSITION. EDIT THE TWO SLIDERS IN EFFECT CONTROLS AT ANY TIME.</p>
-  <hr><h2>NUMBER COUNTER</h2><div class="row"><label>FROM<input id="counter-from" type="number" step="any" required value="0"></label><label>TO<input id="counter-to" type="number" step="any" required value="1000"></label></div><div class="row"><label>DURATION · S<input id="counter-duration" type="number" min="0.05" max="3600" step="0.01" value="2"></label><label>DECIMALS<input id="counter-decimals" type="number" min="0" max="6" value="0"></label></div><div class="row"><label>PREFIX<input id="counter-prefix" type="text" placeholder="₹" maxlength="24"></label><label>SUFFIX<input id="counter-suffix" type="text" placeholder="%" maxlength="24"></label></div><label class="check"><input id="counter-separator" type="checkbox" checked>CUSTOM COMMAS</label><div id="counter-comma-options"><div class="row"><label>FIRST COMMA AFTER · DIGITS<input id="counter-first" type="number" min="1" max="12" step="1" value="3" required></label><label>NEXT COMMAS EVERY · DIGITS<input id="counter-every" type="number" min="1" max="12" step="1" value="3" required></label></div><p class="hint">COUNT FROM THE RIGHT. 3 / 3: 1,500,000 · 3 / 2: 15,00,000.</p></div><div class="counter-preview" aria-live="polite"><span>NUMBER PREVIEW · FROM → TO</span><output id="counter-preview"></output></div><button class="primary" data-action="counter">CREATE / APPLY COUNTER</button><p class="hint">USES SELECTED TEXT LAYERS, OR CREATES ONE. ANIMATED VALUE REMAINS EDITABLE IN EFFECT CONTROLS.</p>
-  <hr><label class="check"><input id="replace-expression" type="checkbox">REPLACE EXISTING EXPRESSIONS</label><button data-action="removeExpressions">REMOVE SUPERV EXPRESSIONS</button>
-</section>
+
+<!-- ================= TEXT ================= -->
 <section id="text" class="tab">
-  <div class="preview-stage" id="text-stage"><div id="preview-text">SuperV</div><span class="preview-tag">STYLE PREVIEW</span></div>
-  <div class="playbar"><button id="replay" class="icon-button" aria-label="Replay preview">▶</button><span id="preview-label">SLIDE UP</span><div class="track"><i id="preview-progress"></i></div></div>
-  <div class="row"><label>INITIAL DURATION · S<input id="text-duration" type="number" value="0.8" min="0.1" max="60" step="0.01"></label><label>STAGGER · S<input id="text-stagger" type="number" value="0.04" min="0" max="2" step="0.001"></label></div>
-  <div class="row"><label>BY<select id="text-by"><option value="word">WORD</option><option value="character">CHARACTER</option><option value="line">LINE</option></select></label><label>DIRECTION<select id="text-direction"><option value="in">IN</option><option value="out">OUT</option></select></label></div>
-  <button class="primary" data-action="text">APPLY ANIMATION</button><div class="row"><button data-action="textPreview">CREATE AE PREVIEW</button><button data-action="removeText">REMOVE SUPERV ANIMATION</button></div><p class="hint">IN: LAYER START → "in" MARKER. OUT: "out" MARKER → LAYER END. DRAG THE MARKERS TO ADJUST TIMING. APPLY EACH DIRECTION SEPARATELY; BOTH ARE KEPT. YOUR FONT IS PRESERVED.</p>
-<hr><label>CATEGORY<select id="text-category"><option>BASIC</option><option>FADE &amp; REVEAL</option><option>SLIDE &amp; SCALE</option><option>BLUR</option><option>OUTLINE</option></select></label><div id="preset-grid" class="preset-grid"></div>
+  <div class="tiles">
+    <button class="tile" data-tool="animate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h10M8 6v12"/><path d="M17.5 10l1.1 2.6 2.6 1.1-2.6 1.1-1.1 2.6-1.1-2.6-2.6-1.1 2.6-1.1z"/></svg><span>Animate</span></button>
+    <button class="tile" data-tool="box"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M8 10h8M12 10v5"/></svg><span>Text box</span></button>
+    <button class="tile" data-tool="split"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7h7M5.5 7v10M15 7h7M18.5 7v10"/><path d="M12 3v2M12 9v2M12 15v2M12 21v-2"/></svg><span>Split text</span></button>
+    <button class="tile" data-tool="case"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 18l4-11 4 11M4 14h5"/><circle cx="16.5" cy="15" r="3"/><path d="M19.5 11.5V18"/></svg><span>Case</span></button>
+    <button class="tile" data-tool="cursor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h9M7.5 8v9"/><path d="M18 5v14M16 5h4M16 19h4"/></svg><span>Cursor</span></button>
+  </div>
+
+  <div class="drawer">
+    <p class="empty">Pick a tool to see its options.</p>
+
+    <div class="opts" data-tool="animate" hidden>
+      <h3>Animate text</h3>
+      <div class="preview-stage" id="text-stage"><div id="preview-text">SuperV</div><span class="preview-tag" id="preview-label">Slide up</span><button id="replay" class="icon-button" aria-label="Replay preview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg></button></div>
+      <div class="track"><i id="preview-progress"></i></div>
+      <div class="chips small" id="text-cats"></div>
+      <div id="preset-grid" class="preset-grid"></div>
+      <div class="seg" id="text-direction"><button data-value="in" class="on">In</button><button data-value="out">Out</button></div>
+      <div class="row">
+        <label>Duration (s)<input id="text-duration" type="number" value="0.8" min="0.1" max="60" step="0.01"></label>
+        <label>Stagger (s)<input id="text-stagger" type="number" value="0.04" min="0" max="2" step="0.001"></label>
+      </div>
+      <label>By<select id="text-by"><option value="word">Word</option><option value="character">Character</option><option value="line">Line</option></select></label>
+      <button class="primary" data-action="text"><span>Animate text</span></button>
+      <div class="pair"><button class="secondary" data-action="textPreview">AE preview</button><button class="secondary" data-action="removeText">Remove animation</button></div>
+      <p class="hint">In runs from the layer start to its "in" marker; Out runs from its "out" marker to the layer end. Drag the markers to change timing. Your font is kept.</p>
+    </div>
+
+    <div class="opts" data-tool="box" hidden>
+      <h3>Background box</h3>
+      <div class="row">
+        <label>Padding (px)<input id="box-padding" type="number" min="0" max="5000" value="24"></label>
+        <label>Corner radius<input id="box-roundness" type="number" min="0" max="5000" value="12"></label>
+      </div>
+      <div class="row">
+        <label>Colour<input id="box-colour" type="color" value="#0080ff"></label>
+        <label>Opacity (%)<input id="box-opacity" type="number" min="0" max="100" value="100"></label>
+      </div>
+      <button class="primary" data-action="textBox"><span>Add box</span></button>
+      <p class="hint">Adds a rectangle behind each selected text layer with equal padding on every side. It follows the text as you type, resize or move it. Edit Padding and Roundness later in Effect Controls.</p>
+    </div>
+
+    <div class="opts" data-tool="split" hidden>
+      <h3>Split text</h3>
+      <div class="seg" id="split-by"><button data-value="line" class="on">Lines</button><button data-value="word">Words</button><button data-value="character">Characters</button></div>
+      <label class="check"><input id="split-hide" type="checkbox" checked>Hide the original layer</label>
+      <button class="primary" data-action="splitText"><span>Split text</span></button>
+      <p class="hint">Each piece becomes its own layer in the same place. Works on point text without Source Text keyframes. Up to 300 pieces.</p>
+    </div>
+
+    <div class="opts" data-tool="case" hidden>
+      <h3>Change case</h3>
+      <div class="seg" id="case-mode"><button data-value="upper" class="on">UPPER</button><button data-value="lower">lower</button><button data-value="title">Title Case</button></div>
+      <button class="primary" data-action="changeCase"><span>Change case</span></button>
+      <p class="hint">Rewrites the text of the selected text layers, including Source Text keyframes.</p>
+    </div>
+
+    <div class="opts" data-tool="cursor" hidden>
+      <h3>Typewriter with cursor</h3>
+      <div class="row">
+        <label>Typing time (s)<input id="cursor-duration" type="number" min="0.1" max="600" step="0.1" value="2"></label>
+        <label>Cursor<select id="cursor-char"><option value="|">|</option><option value="_">_</option><option value="▌">▌</option><option value="█">█</option></select></label>
+      </div>
+      <label>Blinks per second<input id="cursor-blink" type="number" min="0.1" max="20" step="0.1" value="2"></label>
+      <label class="check"><input id="cursor-keep" type="checkbox" checked>Keep blinking after typing</label>
+      <label class="check"><input id="cursor-replace" type="checkbox">Replace existing expressions</label>
+      <button class="primary" data-action="textCursor"><span>Type with cursor</span></button>
+      <button class="secondary" data-action="removeCursor">Remove cursor</button>
+      <p class="hint">Types the text in from the layer start to its "in" marker, with a cursor following the last letter. Drag the marker to change speed.</p>
+    </div>
+  </div>
 </section>
-<section id="export" class="tab">
-  <h2>GIF CONVERTER</h2><div class="export-stage checker"><span>SuperV</span><img id="gif-preview" alt="Exported GIF preview" hidden></div>
-  <label>SOURCE<select id="gif-source"><option value="comp">COMPOSITION</option><option value="video">VIDEO FILE</option></select></label><div id="video-row" hidden><button id="pick-video">CHOOSE VIDEO</button><p class="file-label" id="video-label">NO FILE SELECTED</p></div>
-  <label id="gif-range-row">RANGE<select id="gif-range"><option value="workarea">WORK AREA</option><option value="comp">FULL COMPOSITION</option></select></label>
-  <div class="row"><label>WIDTH · PX<input id="gif-width" type="number" min="16" max="4096" value="800" step="1"></label><label>FPS<input id="gif-fps" type="number" min="1" max="50" value="24"></label></div>
-  <label>CHANNELS<select id="gif-channels"><option value="rgb">RGB</option><option value="alpha">ALPHA</option><option value="rgba">RGB + ALPHA</option></select></label>
-  <label id="gif-background-row">BACKGROUND<input type="color" id="gif-background" value="#202124"></label><label id="gif-threshold-row" hidden>ALPHA THRESHOLD<input id="gif-threshold" type="number" min="0" max="255" value="128"></label>
-  <div class="row"><label>COLOURS<select id="gif-colours"><option>256</option><option>128</option><option>64</option><option>32</option></select></label><label>DITHER<select id="gif-dither"><option value="sierra2_4a">SMOOTH</option><option value="bayer">PATTERN</option><option value="none">NONE</option></select></label></div>
-  <label>LOOP<select id="gif-loop"><option value="0">FOREVER</option><option value="-1">PLAY ONCE</option><option value="1">REPEAT ONCE</option><option value="2">REPEAT TWICE</option></select></label><p class="hint" id="channel-hint">RGB FLATTENS TRANSPARENCY ONTO THE BACKGROUND COLOUR.</p>
-  <button id="export-gif" class="primary">EXPORT GIF</button><button id="cancel-export" hidden>CANCEL ENCODING</button><p class="hint">AE FRAME RENDERING BLOCKS THE PANEL; PRESS ESC IN AE TO CANCEL THAT STAGE. ENCODING CAN BE CANCELLED HERE.</p><div id="export-result" hidden><button id="show-output">SHOW EXPORTED FILE</button><span id="output-size" class="badge"></span></div>
+
+<!-- ================= SETTINGS ================= -->
+<section id="settings" class="tab">
+  <div class="settings-head"><button id="settings-back" class="icon-button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h3>Settings</h3></div>
+  <div class="card">
+    <button id="reconnect" class="secondary">Reconnect to After Effects</button>
+    <label>FFmpeg<input id="encoder-path" type="text" placeholder="Included FFmpeg is used"></label>
+    <div class="pair"><button id="pick-encoder" class="secondary">Browse</button><button id="test-encoder" class="secondary">Test encoder</button></div>
+  </div>
+  <div class="card">
+    <button id="clear-pins" class="secondary">Clear pinned colours</button>
+    <button id="reset-settings" class="secondary">Reset panel settings</button>
+  </div>
+  <div class="card" id="about">
+    <p class="about-name">SuperV</p>
+    <p>Version 1.3.0 · Windows · After Effects 2025 and 2026</p>
+    <p>Done by VisHnu VK, GPT-6 Astra and Claude</p>
+    <p class="about-credits">Third-party components: True Comp Duplicator · FFmpeg</p>
+  </div>
 </section>
-<section id="settings" class="tab"><h2>SETTINGS</h2><button id="reconnect">RECONNECT TO AFTER EFFECTS</button><p class="hint">SuperV · 1.2.2<br>WINDOWS · AFTER EFFECTS 2025 / 2026</p><label>FFMPEG EXECUTABLE<input id="encoder-path" type="text" placeholder="SELECT FFMPEG.EXE"></label><div class="row"><button id="pick-encoder">BROWSE</button><button id="test-encoder">TEST ENCODER</button></div><p class="hint">GIF EXPORT AND ALPHA CROP USE THE INCLUDED FFMPEG. SELECT ANOTHER FFMPEG.EXE HERE ONLY IF NEEDED.</p><hr><h2>COLOURS</h2><p class="hint">CLICK A SWATCH TO APPLY TO SELECTED COLOUR PROPERTIES OR TEXT FILL. SHIFT-CLICK TO PIN / UNPIN.</p><button id="clear-pins">CLEAR PINNED COLOURS</button><hr><button id="reset-settings">RESET PANEL SETTINGS</button><hr><div id="about"><h2>ABOUT</h2><p class="about-name">SuperV</p><p>VERSION 1.2.2</p><p>Done by VisHnu VK, GPT-6 Astra and Claude</p><p>Everyday motion tools for Adobe After Effects.</p><p>Null · Crop · Duplicator · Keyframes · Loop · Wiggle<br>Counter · Text · Colours · Organizer · GIF</p><p class="about-credits">Third-party components: True Comp Duplicator · FFmpeg</p></div></section>
 </main>
-<footer><div class="footer-heading"><span>RECENT COLOURS</span><div><button id="sample-colour" title="Read selected colour properties">SAMPLE</button><label class="colour-add" title="Choose and apply a colour">+<input id="new-colour" type="color" value="#0080ff" aria-label="Choose colour"></label></div></div><div id="colour-swatches"></div><div id="pinned-swatches"></div><div class="colour-editor"><label>HEX<input id="colour-hex" type="text" value="#0080FF" maxlength="7" aria-label="HEX colour" spellcheck="false"></label><button id="apply-hex">APPLY</button><span id="colour-rgb" title="RGB values">0, 128, 255</span></div><div id="status" role="status" aria-live="polite">READY</div></footer>
-<script src="js/text-presets.js"></script><script src="js/number-format.js"></script><script src="js/bridge.js"></script><script src="js/panel.js"></script></body></html>
+<footer id="statusbar"><span class="dot"></span><span id="status" role="status" aria-live="polite">Ready</span></footer>
+<script src="js/text-presets.js"></script>
+<script src="js/number-format.js"></script>
+<script src="js/bridge.js"></script>
+<script src="js/panel.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* SuperV 1.2.2 — explicitly loaded by the CEP connection check. */
+/* SuperV 1.3.0 — explicitly loaded by the CEP connection check. */
 $.global.__VK_GSD_HOST__ = (function () {
     var hostFile = new File($.fileName), moduleRoot = hostFile.parent.parent;
     var clipboard = null;
@@ -133,7 +133,12 @@ $.global.__VK_GSD_HOST__ = (function () {
     $.evalFile(featureFile);
     var extra=VKFeatures({moduleRoot:moduleRoot,comp:comp,fail:fail,num:num,props:props,owner:owner,numeric:numeric,setExpression:setExpression,walk:walk,encode:encode});
     for(var feature in extra)if(extra.hasOwnProperty(feature))actions[feature]=extra[feature];
-    return {version:'1.2.2',source:hostFile.fsName,dispatch:function(action,encoded){var undo=false,response;try{if(!actions.hasOwnProperty(action))fail('Unknown action.');var raw=decodeURIComponent(encoded||'%7B%7D');/* Only URI-encoded JSON from our local panel enters here. */var data=eval('('+raw+')');if(!/^(ping|pickFile|pickOutput|renderBegin|renderFrame|renderFinish|duplicateExternal|copyKeys)$/.test(action)){app.beginUndoGroup('SuperV · '+action);undo=true;}var result=actions[action](data||{});result.ok=true;response=encode(result);}catch(e){response=encode({ok:false,message:String(e.message||e),line:e.line||null});}finally{if(undo)app.endUndoGroup();}return response;},_test:{encode:encode,actions:actions}};
+    var moreFile = new File(hostFile.parent.fsName+'/more.jsx');
+    if(!moreFile.exists)fail('Required script is missing: '+moreFile.fsName);
+    $.evalFile(moreFile);
+    var more=VKMore({comp:comp,fail:fail,num:num,setExpression:setExpression,encode:encode});
+    for(var tool in more)if(more.hasOwnProperty(tool))actions[tool]=more[tool];
+    return {version:'1.3.0',source:hostFile.fsName,dispatch:function(action,encoded){var undo=false,response;try{if(!actions.hasOwnProperty(action))fail('Unknown action.');var raw=decodeURIComponent(encoded||'%7B%7D');/* Only URI-encoded JSON from our local panel enters here. */var data=eval('('+raw+')');if(!/^(ping|pickFile|pickOutput|renderBegin|renderFrame|renderFinish|duplicateExternal|copyKeys)$/.test(action)){app.beginUndoGroup('SuperV · '+action);undo=true;}var result=actions[action](data||{});result.ok=true;response=encode(result);}catch(e){response=encode({ok:false,message:String(e.message||e),line:e.line||null});}finally{if(undo)app.endUndoGroup();}return response;},_test:{encode:encode,actions:actions}};
 })();
 // Standalone test alias. CEP commands use the private namespace above.
 var VK = $.global.__VK_GSD_HOST__;

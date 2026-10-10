@@ -1,6 +1,8 @@
 # SuperV roadmap
 
-## 1.3 — planned (not built yet)
+## 1.3 — built (1.3.0)
+
+Everything below is in 1.3.0 except the update check.
 
 ### New layout (from VisHnu's sketch)
 - Name at top, two large tabs: **Effects** and **Text**.

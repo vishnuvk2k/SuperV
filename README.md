@@ -1,4 +1,4 @@
-# SuperV 1.2.2
+# SuperV 1.3.0
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
 
@@ -12,6 +12,22 @@ After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray inter
 6. In SuperV, open **Settings > Test Encoder**. The included FFmpeg is selected automatically.
 
 The installer backs up previous installations to `%APPDATA%\SuperV-Backups` and installs at `%APPDATA%\Adobe\CEP\extensions\SuperV`. Existing CEP identity/settings keys remain compatible. Do not install the JSON separately or use AE's native Plug-ins folder. This personal unsigned extension uses `PlayerDebugMode` in the current Windows user's CSXS 11 and 12 registry keys. The installer retains previous values for optional restoration.
+
+## New in 1.3
+
+**New layout.** Two big tabs, **Effects** and **Text**. Each shows tool tiles; click a tile and its options open underneath with one main button. Settings and About are behind the gear. Results show in the status bar at the bottom; the main button shows working, done (green) or error (red).
+
+**Effects tiles:** Null · Crop · Keyframes (copy/paste) · Loop · Wiggle · Counter · **Shapes** · **Comp size** · Colour · GIF · Organize · Duplicate.
+
+**Text tiles:** Animate (the 15 presets) · **Text box** · **Split text** · **Case** · **Cursor**.
+
+- **Text box:** a rectangle behind each selected text layer with equal padding on every side. It is parented to the text and sized by an expression, so it follows typing, resizing and movement. Padding and Roundness are sliders in Effect Controls; colour and opacity are set when you add it.
+- **Split text:** one layer per line, word or character, each in its original place. Point text only, no Source Text keyframes or expressions, up to 300 pieces. The original is hidden, not deleted. Mixed styles inside one layer take the first character's style.
+- **Case:** UPPERCASE, lowercase or Title Case, including Source Text keyframes.
+- **Cursor:** types the text in from the layer start to its "in" marker with a blinking cursor (|, _, ▌ or █). Optional blinking after typing. Remove cursor takes it off again.
+- **Shapes:** circle, rounded rectangle, line or arrow, centred in the comp, in your colour.
+- **Comp size:** 1080p, 4K, Reels · Shorts · Story (1080×1920), Square, Portrait 4:5. Create a new comp, or resize the current one with content kept centred.
+- **Colour:** the recent-colour strip is gone. The Colour tile has a picker, HEX, Sample from AE, up to 12 pinned colours and Apply. Nothing is captured automatically.
 
 ## Text animation — 15 presets
 
