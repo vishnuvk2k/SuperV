@@ -34,10 +34,25 @@ Everything below is in 1.3.0 except the update check.
 - Compact tiles: 62 px high, five per row in wide panels.
 - **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
 
-## Planned next (not built)
-- **Ease** tile (inspired by Easify, our own design): one-click In, Out and In-Out with a strength slider; named curves (Sine to Expo) as AE bezier eases; Bounce and Elastic after the last keyframe as editable expressions (no extra keys) or baked keys; copy, paste and reset easing; a small live curve preview; favourite presets.
-- **Depth** tile (inspired by Depth v1.0.2): spread 2D layers in Z with size compensation and an optional camera rig.
-- Features from TextPlugin once VisHnu lists them.
+## Planned next (not built) — version 1.4
+
+### Ease tile (inspired by Easify 2 Pro and Easify 4; our own design and code)
+1. **Curve graph:** a small graph with two draggable handles; applies to the selected keyframes as normal After Effects easing (editable afterwards in the Graph Editor).
+2. **Presets:** Linear, Sine, Quad, Cubic, Quart, Quint, Expo, Circ and Back, for In, Out and In-Out, with a strength slider.
+3. **Apply to:** between selected keys, all keys on the selected properties, or the motion path (spatial).
+4. **Bounce and Elastic:** after the last keyframe, as editable expression controls (count, height, frequency, decay) or baked keyframes at a chosen interval.
+5. **Copy, paste and reset easing.**
+6. **Favourites:** save your own curves by name.
+7. **Eased time remapping:** enable time remap on footage with a smooth slow-down or speed-up.
+8. **One-click transitions:** slide, zoom or fade between layers using the chosen curve.
+9. **Align:** line up selected layers to each other or to the comp.
+Limit: AE easing between two keys has two handles, so Bounce and Elastic use controls or extra keys. Premiere Pro is not included.
+
+### Depth tile (inspired by Depth v1.0.2)
+Spread 2D layers along Z with size compensation, lens choice and an optional camera rig; move layers relative to an existing camera.
+
+### From TextPlugin
+Waiting for the list or screenshots of the features VisHnu likes.
 
 ## Done in 1.2.2
 - Crop Comp Fast mode (layer bounds, no rendering) as default; Exact mode in batches at half size, cancellable.
