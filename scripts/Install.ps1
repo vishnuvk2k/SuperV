@@ -7,6 +7,15 @@ $extensionParent = Join-Path $env:APPDATA 'Adobe/CEP/extensions'
 $destinationPath = Join-Path $extensionParent 'SuperV'
 if (Get-Process AfterFX -ErrorAction SilentlyContinue) { throw 'Save your work and close After Effects before installing SuperV.' }
 $originalDebugBackup = $null
+# Update packages may omit FFmpeg (it is over 100 MB). Reuse the encoder from the current installation.
+$bundledEncoder = Join-Path $sourcePath 'bin/ffmpeg.exe'
+$keptEncoder = $null
+if (-not (Test-Path -LiteralPath $bundledEncoder)) {
+    foreach ($folderName in @('SuperV','GetShitDoneByVK')) {
+        $candidate = Join-Path (Join-Path $env:APPDATA 'Adobe/CEP/extensions') (Join-Path $folderName 'bin/ffmpeg.exe')
+        if (Test-Path -LiteralPath $candidate) { $keptEncoder = Join-Path $env:TEMP ('superv-ffmpeg-' + [guid]::NewGuid().ToString('N') + '.exe'); Copy-Item -LiteralPath $candidate -Destination $keptEncoder; break }
+    }
+}
 New-Item -ItemType Directory -Path $extensionParent -Force | Out-Null
 foreach ($folderName in @('SuperV','GetShitDoneByVK')) {
     $resolved = [IO.Path]::GetFullPath((Join-Path $extensionParent $folderName))
@@ -20,6 +29,8 @@ foreach ($folderName in @('SuperV','GetShitDoneByVK')) {
     Write-Output "Previous installation backed up to $backupPath"
 }
 Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Recurse
+if ($keptEncoder) { Move-Item -LiteralPath $keptEncoder -Destination (Join-Path $destinationPath 'bin/ffmpeg.exe') -Force; Write-Output 'Kept your existing FFmpeg encoder.' }
+elseif (-not (Test-Path -LiteralPath (Join-Path $destinationPath 'bin/ffmpeg.exe'))) { Write-Output 'FFmpeg is not included. Run scripts\Setup-Encoder.ps1, then INSTALL.cmd again, for GIF export and Exact crop.' }
 # Personal, unsigned CEP extension: enable Adobe's development loading for this Windows user.
 # Record previous values so Uninstall.ps1 -RestoreDebugSettings can restore them explicitly.
 $debugRecords = @()
