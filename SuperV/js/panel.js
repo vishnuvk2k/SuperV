@@ -11,6 +11,7 @@
     var configRequest = new XMLHttpRequest(); configRequest.open('GET', 'config/defaults.json', false); configRequest.send();
     var config = JSON.parse(configRequest.responseText);
     if (/^#[0-9a-f]{6}$/i.test(config.theme)) document.documentElement.style.setProperty('--blue', config.theme);
+    if (typeof config.encoder === 'string' && config.encoder) defaults.encoder = config.encoder;
   } catch (_) { /* Built-in defaults also support browser previews with local-file restrictions. */ }
 
   /* ---------- Status, settings ---------- */
@@ -30,6 +31,7 @@
       else if (el.type === 'checkbox') el.checked = !!state.fields[id];
       else el.value = state.fields[id];
     });
+    if (!state.encoder) state.encoder = defaults.encoder || '';
     $('encoder-path').value = state.encoder || '';
   }
   function value(id) { return $(id).value; }
