@@ -12,7 +12,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 
 /* Header and tabs */
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;flex-shrink:0}
-.brand{font:italic 900 24px/1 "Arial Black","Segoe UI",sans-serif;letter-spacing:-1px}
+.brand{display:flex;align-items:center;font:italic 900 24px/1 "Arial Black","Segoe UI",sans-serif;letter-spacing:-1px}
+.brand img{display:block;height:20px;width:auto}
 .icon-button{background:none;border:0;padding:6px;border-radius:6px;color:var(--muted);cursor:pointer;display:flex}
 .icon-button:hover{background:var(--surface-2);color:var(--text)}
 .icon-button svg{width:19px;height:19px}
