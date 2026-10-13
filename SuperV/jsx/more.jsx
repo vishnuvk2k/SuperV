@@ -495,32 +495,5 @@ function VKMore(h) {
         if (!done) h.fail('Nothing was unpacked: ' + notes.join('; ') + '.');
         return { message: 'Unpacked ' + done + ' precomp' + (done === 1 ? '' : 's') + ' into ' + made + ' layer' + (made === 1 ? '' : 's') + '.' + (notes.length ? ' Note: ' + notes.join('; ') + '.' : '') };
     }
-
-    // Precomp: precompose the selected layers, moving every attribute into the new comp.
-    function precompLayers() {
-        var c = h.comp(), sel = c.selectedLayers, idx = [], i, name;
-        if (!sel.length) h.fail('Select one or more layers to precompose.');
-        for (i = 0; i < sel.length; i++) { if (sel[i].locked) h.fail('Unlock the selected layers first.'); idx.push(sel[i].index); }
-        idx.sort(function (a, b) { return a - b; });
-        name = sel.length === 1 ? sel[0].name + ' Comp' : 'Precomp';
-        c.layers.precompose(idx, name, true);
-        return { message: 'Precomposed ' + idx.length + ' layer' + (idx.length === 1 ? '' : 's') + ' into "' + name + '".' };
-    }
-    // Delete group: remove the selected layers and every layer parented to them, directly or through other layers.
-    function deleteGroup() {
-        var c = h.comp(), sel = c.selectedLayers, mark = {}, i, changed = true, removed = 0;
-        if (!sel.length) h.fail('Select the layers to delete. Their children go too.');
-        for (i = 0; i < sel.length; i++) mark[sel[i].index] = true;
-        while (changed) {
-            changed = false;
-            for (i = 1; i <= c.numLayers; i++) {
-                var p = c.layer(i).parent;
-                if (!mark[i] && p && mark[p.index]) { mark[i] = true; changed = true; }
-            }
-        }
-        for (i = 1; i <= c.numLayers; i++) if (mark[i] && c.layer(i).locked) h.fail('"' + c.layer(i).name + '" is locked. Unlock it first. Nothing was deleted.');
-        for (i = c.numLayers; i >= 1; i--) if (mark[i]) { c.layer(i).remove(); removed++; }
-        return { message: 'Deleted ' + removed + ' layer' + (removed === 1 ? '' : 's') + (removed > sel.length ? ' (' + sel.length + ' selected plus ' + (removed - sel.length) + ' parented to them)' : '') + '.' };
-    }
-    return { decomp: decomp, precompLayers: precompLayers, deleteGroup: deleteGroup, textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor,  compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
+    return { decomp: decomp, textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor,  compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
 }
