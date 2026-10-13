@@ -41,7 +41,7 @@ Write-Section 'Extension files (this user)'
 $extRoot = Join-Path $env:APPDATA 'Adobe\CEP\extensions\SuperV'
 if (Test-Path -LiteralPath $extRoot) {
     Write-Ok "Found: $extRoot"
-    $required = @('index.html', 'CSXS\manifest.xml', 'js\panel.js', 'jsx\host.jsx', 'jsx\bridge-ai.jsx')
+    $required = @('index.html', 'CSXS\manifest.xml', 'js\panel.js', 'jsx\host.jsx')
     foreach ($rel in $required) {
         $p = Join-Path $extRoot $rel
         if (Test-Path -LiteralPath $p) { Write-Ok "  $rel present" }

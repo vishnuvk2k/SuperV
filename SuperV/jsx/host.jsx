@@ -138,11 +138,6 @@ $.global.__VK_GSD_HOST__ = (function () {
     $.evalFile(moreFile);
     var more=VKMore({comp:comp,fail:fail,num:num,setExpression:setExpression,encode:encode});
     for(var tool in more)if(more.hasOwnProperty(tool))actions[tool]=more[tool];
-    var bridgeFile = new File(hostFile.parent.fsName+'/bridge-ai.jsx');
-    if(!bridgeFile.exists)fail('Required script is missing: '+bridgeFile.fsName);
-    $.evalFile(bridgeFile);
-    var illustrator=VKIllustrator({moduleRoot:moduleRoot,fail:fail});
-    for(var link in illustrator)if(illustrator.hasOwnProperty(link))actions[link]=illustrator[link];
     var easeFile = new File(hostFile.parent.fsName+'/ease.jsx');
     if(!easeFile.exists)fail('Required script is missing: '+easeFile.fsName);
     $.evalFile(easeFile);

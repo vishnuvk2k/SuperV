@@ -25,7 +25,8 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 
 - **WebM export.** The GIF tile is now **GIF / WebM**. A Format menu switches between an animated GIF and a VP9 WebM video. WebM keeps real, soft-edged transparency (RGB + alpha), and has a Quality menu (High, Balanced, Small) and up to 60 fps. Works with a comp or a video file.
 - **SmartResize.** The Comp size tile's *Resize current* mode is now **SmartResize**. Choose how everything follows the new frame: scale to fit, scale to fill, spread out (move layers, keep their size), keep centred, or change the size only. Keyframes, spatial motion paths, separated X/Y/Z, cameras (zoom and focus distance) and lights are all carried across, layers inside a parent follow their parent, and expression-driven layers are skipped and counted. Full-frame solids and adjustment layers are refitted to the new size. *Resize a copy* (on by default) leaves your original comp untouched. A **Custom** size takes any width and height.
-- **Illustrator Bridge.** A new **Illustrator** tile. *Pull from Illustrator* asks the running Illustrator to save its open document and brings it into After Effects as a comp with its layers, optionally converted to editable shape layers, kept sharp when scaled, or added to the comp you have open. *Import last push* and *Choose .ai file* work without Illustrator running, and an optional watcher imports automatically whenever Illustrator pushes. Pushing from Illustrator by hand uses `SuperV\bridge\SuperV-Push-to-AE.jsx` (File > Scripts > Other Script). Illustrator must save the file with **Create PDF Compatible File** on, which is the default.
+- **One-click tiles.** Null (parents the selection, centred, 2D), Crop (fast, all visible layers, full animation, no padding), Organize and Duplicate (opens True Comp Duplicator) run as soon as you click them. The Illustrator and Keyframes tiles were removed.
+- **GIF options.** Render preset (Alpha Only, High Quality, High Quality with Alpha, Lossless, Lossless with Alpha), Framerate (As comp by default), Max colors and Compress (None to Insane) for smaller files; non-lossless presets render at the output size to save time.
 - **Blank-panel fixes.** The installer warns when run as Administrator, clears the "downloaded from the internet" mark from every file, sets the unsigned-extension flag for CSXS 11 to 13, and verifies files and flags before it reports success. New **scripts\Check-SuperV.ps1** diagnoses and repairs a broken install. The panel shows a visible error if it cannot start.
 
 ## New in 1.3.2
@@ -40,7 +41,7 @@ You do not need to uninstall before installing. **INSTALL.cmd** backs up and rep
 
 **New layout.** Two big tabs, **Effects** and **Text**. Each shows tool tiles; click a tile and its options open underneath with one main button. Settings and About are behind the gear. Results show in the status bar at the bottom; the main button shows working, done (green) or error (red).
 
-**Effects tiles:** Null · Crop · Keyframes (copy/paste) · **Ease** · Loop · Wiggle · **Spin** · **Depth** · Counter · **Comp size** · GIF / WebM · **Illustrator** · Organize · Duplicate.
+**Effects tiles:** Null · Crop · **Ease** · Loop · Wiggle · **Spin** · **Depth** · Counter · **Comp size** · GIF / WebM · Organize · Duplicate.
 
 **Text tiles:** Animate (the 15 presets) · **Text box** · **Split text** · **Case** · **Cursor**.
 
