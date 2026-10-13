@@ -125,3 +125,7 @@ Once `ffmpeg.exe` exists, the two `.gz` parts are deleted, so the installed pane
 If you would rather supply your own build, run `scripts/Setup-Encoder.ps1` (optionally with `-EncoderPath C:\path\to\ffmpeg.exe`), or point **Settings > FFmpeg** at any ffmpeg.exe. A path set in `SuperV/config/defaults.json` is used as the default when Settings is empty.
 
 Installing over an existing SuperV keeps the encoder you already had, and an install that finds none in place falls back to the copies in `%APPDATA%\SuperV-Backups`. Those backup folders are never pruned automatically — each one holding a full encoder is about 100 MB, so clear out old ones yourself once an upgrade has proved good.
+
+---
+
+Copyright (c) 2026 Vishnu VK. All rights reserved. Free to use for testing and personal work; see [LICENSE](LICENSE). FFmpeg and True Comp Duplicator keep their own licences.
