@@ -54,6 +54,8 @@ Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Recurse
 # A ZIP downloaded from GitHub marks every file as "from the internet". Clear that so the panel can load them.
 Get-ChildItem -LiteralPath $destinationPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { Unblock-File -LiteralPath $_.FullName -ErrorAction SilentlyContinue }
 if ($keptEncoder) {
+    # An update package may not contain bin\ at all, so create it before moving the encoder in.
+    New-Item -ItemType Directory -Path (Join-Path $destinationPath 'bin') -Force | Out-Null
     Move-Item -LiteralPath $keptEncoder -Destination (Join-Path $destinationPath 'bin/ffmpeg.exe') -Force
     Get-ChildItem -LiteralPath (Join-Path $destinationPath 'bin') -Filter 'ffmpeg.gz.*' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     Write-Output 'Kept your existing FFmpeg encoder.'
