@@ -9,7 +9,7 @@ if ($RestoreDebugSettings) {
     $backup = Join-Path $destinationPath 'installation-debug-backup.json'
     if (Test-Path -LiteralPath $backup) {
         foreach ($r in (Get-Content -LiteralPath $backup -Raw | ConvertFrom-Json)) {
-            if ($r.Path -notmatch '^HKCU:\\Software\\Adobe\\CSXS\.(11|12)$') { throw 'Unexpected registry backup path.' }
+            if ($r.Path -notmatch '^HKCU:\\Software\\Adobe\\CSXS\.(11|12|13)$') { throw 'Unexpected registry backup path.' }
             if ($r.Existed) { Set-ItemProperty -LiteralPath $r.Path -Name PlayerDebugMode -Value $r.Value }
             else { Remove-ItemProperty -LiteralPath $r.Path -Name PlayerDebugMode -ErrorAction SilentlyContinue }
         }

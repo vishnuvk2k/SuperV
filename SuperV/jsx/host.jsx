@@ -1,4 +1,4 @@
-/* SuperV 1.3.2 — explicitly loaded by the CEP connection check. */
+/* SuperV 1.4.0 — explicitly loaded by the CEP connection check. */
 $.global.__VK_GSD_HOST__ = (function () {
     var hostFile = new File($.fileName), moduleRoot = hostFile.parent.parent;
     var clipboard = null;
@@ -126,7 +126,7 @@ $.global.__VK_GSD_HOST__ = (function () {
     function textPreview(o){var spec=VKText.get(o.preset),sample=VKText.sample(spec),ds=VKText.delays(sample,spec.by||o.by,num(o.stagger,0,2),spec.parallelRows),last=0;for(var i=0;i<ds.length;i++)last=Math.max(last,ds[i]);var c=app.project.items.addComp('SuperV PREVIEW - '+spec.name,960,540,1,Math.max(8,num(o.duration,0.1,60)+last+2),30);var l=c.layers.addText(sample.replace(/\n/g,'\r')),src=l.property('ADBE Text Properties').property('ADBE Text Document'),doc=src.value;doc.font='Arial-BoldMT';doc.fontSize=66;doc.fillColor=[1,1,1];doc.justification=ParagraphJustification.CENTER_JUSTIFY;src.setValue(doc);l.property('ADBE Transform Group').property('ADBE Position').setValue([480,spec.parallelRows?190:250]);c.bgColor=[0.125,0.125,0.125];c.time=0.5;addTextAnimation(c,l,o);c.openInViewer();return {message:'Created a SuperV preview comp. Press SPACE / NUMPAD 0 in AE to play.'};}
     function removeText(){var c=comp(),ls=layers(c),n=0;editable(ls);for(var i=0;i<ls.length;i++){var text=ls[i].property('ADBE Text Properties');if(!text)continue;var a=text.property('ADBE Text Animators');for(var j=a.numProperties;j>=1;j--)if(a.property(j).name.indexOf('VK TEXT ')===0){a.property(j).remove();n++;}}return {message:'Removed '+n+' VK text animators.'};}
     function pickFile(o){var f=File.openDialog(o.title||'Choose file');return {path:f?f.fsName:null};}
-    function pickOutput(){var f=File.saveDialog('Export GIF','GIF:*.gif');if(!f)return {path:null};var path=f.fsName;if(!/\.gif$/i.test(path))path+='.gif';var out=new File(path);if(out.exists&&!confirm('Replace existing GIF?\n'+path))return {path:null};return {path:path};}
+    function pickOutput(o){o=o||{};var webm=o.format==='webm',ext=webm?'webm':'gif',label=webm?'WebM':'GIF';var f=File.saveDialog('Export '+label,label+':*.'+ext);if(!f)return {path:null};var path=f.fsName;if(!new RegExp('\\.'+ext+'$','i').test(path))path+='.'+ext;var out=new File(path);if(out.exists&&!confirm('Replace existing '+label+'?\n'+path))return {path:null};return {path:path};}
     var actions={nullTool:nullTool,copyKeys:copyKeys,pasteKeys:pasteKeys,organize:organize,loop:loop,counter:counter,removeExpressions:removeExpressions,text:textTool,textPreview:textPreview,removeText:removeText,pickFile:pickFile,pickOutput:pickOutput,ping:function(){return {message:'Connected to After Effects '+app.version,version:app.version};}};
     var featureFile = new File(hostFile.parent.fsName+'/features.jsx');
     if(!featureFile.exists)fail('Required script is missing: '+featureFile.fsName);
@@ -138,12 +138,17 @@ $.global.__VK_GSD_HOST__ = (function () {
     $.evalFile(moreFile);
     var more=VKMore({comp:comp,fail:fail,num:num,setExpression:setExpression,encode:encode});
     for(var tool in more)if(more.hasOwnProperty(tool))actions[tool]=more[tool];
+    var bridgeFile = new File(hostFile.parent.fsName+'/bridge-ai.jsx');
+    if(!bridgeFile.exists)fail('Required script is missing: '+bridgeFile.fsName);
+    $.evalFile(bridgeFile);
+    var illustrator=VKIllustrator({moduleRoot:moduleRoot,fail:fail});
+    for(var link in illustrator)if(illustrator.hasOwnProperty(link))actions[link]=illustrator[link];
     var easeFile = new File(hostFile.parent.fsName+'/ease.jsx');
     if(!easeFile.exists)fail('Required script is missing: '+easeFile.fsName);
     $.evalFile(easeFile);
     var easing=VKEase({comp:comp,fail:fail});
     actions.ease=easing.ease;
-    return {version:'1.3.2',source:hostFile.fsName,dispatch:function(action,encoded){var undo=false,response;try{if(!actions.hasOwnProperty(action))fail('Unknown action.');var raw=decodeURIComponent(encoded||'%7B%7D');/* Only URI-encoded JSON from our local panel enters here. */var data=eval('('+raw+')');if(!/^(ping|pickFile|pickOutput|renderBegin|renderFrame|renderFinish|duplicateExternal|copyKeys)$/.test(action)){app.beginUndoGroup('SuperV · '+action);undo=true;}var result=actions[action](data||{});result.ok=true;response=encode(result);}catch(e){response=encode({ok:false,message:String(e.message||e),line:e.line||null});}finally{if(undo)app.endUndoGroup();}return response;},_test:{encode:encode,actions:actions}};
+    return {version:'1.4.0',source:hostFile.fsName,dispatch:function(action,encoded){var undo=false,response;try{if(!actions.hasOwnProperty(action))fail('Unknown action.');var raw=decodeURIComponent(encoded||'%7B%7D');/* Only URI-encoded JSON from our local panel enters here. */var data=eval('('+raw+')');if(!/^(ping|pickFile|pickOutput|renderBegin|renderFrame|renderFinish|duplicateExternal|copyKeys)$/.test(action)){app.beginUndoGroup('SuperV · '+action);undo=true;}var result=actions[action](data||{});result.ok=true;response=encode(result);}catch(e){response=encode({ok:false,message:String(e.message||e),line:e.line||null});}finally{if(undo)app.endUndoGroup();}return response;},_test:{encode:encode,actions:actions}};
 })();
 // Standalone test alias. CEP commands use the private namespace above.
 var VK = $.global.__VK_GSD_HOST__;

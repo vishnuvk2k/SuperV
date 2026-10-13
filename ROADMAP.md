@@ -34,7 +34,11 @@ Everything below is in 1.3.0 except the update check.
 - Compact tiles: 62 px high, five per row in wide panels.
 - **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
 
-## Planned next (not built) — version 1.4
+## Built in 1.4.0
+- **SmartResize** (Comp size tile), **WebM export** (GIF / WebM tile), **Illustrator Bridge** (Illustrator tile) and the blank-panel fixes. See the README.
+- Not yet done for the Bridge: live reload of an already imported .ai after it changes in Illustrator (today a new import makes a new comp), and a Photoshop equivalent.
+
+## Planned next (not built) — version 1.5
 
 ### Ease tile (inspired by Easify 2 Pro and Easify 4; our own design and code)
 1. **Curve graph:** a small graph with two draggable handles; applies to the selected keyframes as normal After Effects easing (editable afterwards in the Graph Editor).

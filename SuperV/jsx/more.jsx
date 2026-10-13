@@ -201,53 +201,114 @@ function VKMore(h) {
         return { message: 'Removed the cursor from ' + plural(n, 'text layer') + '.' };
     }
 
-    /* ---------- Comp size presets ---------- */
+    /* ---------- Comp size presets and SmartResize ---------- */
     var sizes = {
         hd: [1920, 1080, '1080p'], uhd: [3840, 2160, '4K'], vertical: [1080, 1920, 'Reels · Shorts · Story'],
         square: [1080, 1080, 'Square'], portrait: [1080, 1350, 'Portrait 4·5']
     };
-    function shiftValue(v, dx, dy) { var a = [v[0] + dx, v[1] + dy]; if (v.length > 2) a.push(v[2]); return a; }
-    function shiftProperty(p, dx, dy, scalar) {
-        if (p.expression && p.expressionEnabled) return false;
-        var k;
-        if (p.numKeys) { for (k = 1; k <= p.numKeys; k++) p.setValueAtKey(k, scalar ? p.keyValue(k) + scalar : shiftValue(p.keyValue(k), dx, dy)); }
-        else p.setValue(scalar ? p.value + scalar : shiftValue(p.value, dx, dy));
-        return true;
-    }
-    function compPreset(o) {
+    var LAYOUT_NAMES = { fit: 'scaled to fit', fill: 'scaled to fill', spread: 'spread out', center: 'kept centred', none: 'left where they were' };
+    function sizeOf(o) {
+        if (o.preset === 'custom') return [Math.round(h.num(o.width, 4, 30000)), Math.round(h.num(o.height, 4, 30000)), 'Custom'];
         var p = sizes[o.preset];
         if (!p) h.fail('Choose a size.');
+        return p;
+    }
+    // Rewrite every value of a property (all keyframes, or the single value). Returns false when an expression drives it.
+    // tangentFn, when given, also rescales the spatial tangents of manual keyframes so motion paths keep their shape.
+    function mapProperty(p, fn, tangentFn) {
+        if (!p) return true;
+        if (p.expression && p.expressionEnabled) return false;
+        var k, rec, saved = [], spatial = false;
+        if (!p.numKeys) { p.setValue(fn(p.value)); return true; }
+        try { spatial = !!(tangentFn && p.isSpatial); } catch (e0) { spatial = false; }
+        for (k = 1; k <= p.numKeys; k++) {
+            rec = { v: p.keyValue(k) };
+            if (spatial) { try { rec.ti = p.keyInSpatialTangent(k); rec.to = p.keyOutSpatialTangent(k); rec.auto = p.keySpatialAutoBezier(k); } catch (e1) { rec.ti = null; } }
+            saved.push(rec);
+        }
+        for (k = 1; k <= p.numKeys; k++) p.setValueAtKey(k, fn(saved[k - 1].v));
+        if (spatial) {
+            for (k = 1; k <= p.numKeys; k++) {
+                rec = saved[k - 1];
+                if (rec.ti && !rec.auto) { try { p.setSpatialTangentsAtKey(k, tangentFn(rec.ti), tangentFn(rec.to)); } catch (e2) { } }
+            }
+        }
+        return true;
+    }
+    function isPlain(p) { return !p.numKeys && !(p.expression && p.expressionEnabled); }
+    // A solid or adjustment layer that exactly covered the old frame, untouched: it should keep covering the new frame.
+    function fullFrameSolid(l, oldW, oldH) {
+        if (!(l instanceof AVLayer) || l.threeDLayer || l.parent) return false;
+        var src = l.source;
+        if (!src || !(src.mainSource instanceof SolidSource)) return false;
+        if (Math.abs(src.width - oldW) > 1 || Math.abs(src.height - oldH) > 1) return false;
+        var pos = transform(l, 'ADBE Position'), sc = transform(l, 'ADBE Scale'), rot = transform(l, 'ADBE Rotate Z'), anc = transform(l, 'ADBE Anchor Point');
+        if (pos.dimensionsSeparated || !isPlain(pos) || !isPlain(sc) || !isPlain(rot) || !isPlain(anc)) return false;
+        if (Math.abs(rot.value) > 0.01 || Math.abs(sc.value[0] - 100) > 0.01 || Math.abs(sc.value[1] - 100) > 0.01) return false;
+        return Math.abs(pos.value[0] - oldW / 2) < 1 && Math.abs(pos.value[1] - oldH / 2) < 1 && Math.abs(anc.value[0] - src.width / 2) < 1 && Math.abs(anc.value[1] - src.height / 2) < 1;
+    }
+    function fitSolid(l, W, H) {
+        var src = l.source;
+        transform(l, 'ADBE Scale').setValue([W / src.width * 100, H / src.height * 100, 100]);
+        transform(l, 'ADBE Position').setValue([W / 2, H / 2]);
+    }
+    // g: { oldW, oldH, W, H, kx, ky, kz, s } where kx/ky stretch positions about the frame centre, kz depth and s the layer scale.
+    function remapLayer(l, g) {
+        var ok = true, pos = transform(l, 'ADBE Position'), poi = null;
+        function mx(v) { return g.W / 2 + (v - g.oldW / 2) * g.kx; }
+        function my(v) { return g.H / 2 + (v - g.oldH / 2) * g.ky; }
+        function point(v) { var a = [mx(v[0]), my(v[1])]; if (v.length > 2) a.push(v[2] * g.kz); return a; }
+        function tangent(v) { var a = [v[0] * g.kx, v[1] * g.ky]; if (v.length > 2) a.push(v[2] * g.kz); return a; }
+        if (pos.dimensionsSeparated) {
+            ok = mapProperty(pos.getSeparationFollower(0), mx) && ok;
+            ok = mapProperty(pos.getSeparationFollower(1), my) && ok;
+            if (g.kz !== 1 && pos.getSeparationFollower(2)) ok = mapProperty(pos.getSeparationFollower(2), function (v) { return v * g.kz; }) && ok;
+        } else ok = mapProperty(pos, point, tangent) && ok;
+        if (l instanceof CameraLayer || l instanceof LightLayer) {
+            poi = transform(l, 'ADBE Anchor Point');
+            if (poi) ok = mapProperty(poi, point) && ok;
+        } else if (g.s !== 1) {
+            ok = mapProperty(transform(l, 'ADBE Scale'), function (v) { var a = [], i; for (i = 0; i < v.length; i++) a.push(v[i] * g.s); return a; }) && ok;
+        }
+        if (l instanceof CameraLayer && g.s !== 1) {
+            var names = ['ADBE Camera Zoom', 'ADBE Camera Focus Distance', 'ADBE Camera Aperture'], i, q;
+            for (i = 0; i < names.length; i++) {
+                try { q = l.property('ADBE Camera Options Group').property(names[i]); if (q) ok = mapProperty(q, function (v) { return v * g.s; }) && ok; } catch (e3) { }
+            }
+        }
+        return ok;
+    }
+    function compPreset(o) {
+        var p = sizeOf(o);
         if (o.mode === 'create') {
             var fps = h.num(o.fps, 1, 120), dur = h.num(o.duration, 0.1, 10800);
             var nc = app.project.items.addComp(p[2] + ' ' + p[0] + 'x' + p[1], p[0], p[1], 1, dur, fps);
             nc.openInViewer();
             return { message: 'Created a ' + p[0] + ' × ' + p[1] + ' comp (' + p[2] + ').' };
         }
-        var c = h.comp();
-        if (c.width === p[0] && c.height === p[1]) return { message: 'This comp is already ' + p[0] + ' × ' + p[1] + '.' };
-        var dx = (p[0] - c.width) / 2, dy = (p[1] - c.height) / 2, skipped = 0, i;
-        c.width = p[0]; c.height = p[1];
-        if (o.center) {
-            for (i = 1; i <= c.numLayers; i++) {
-                var l = c.layer(i);
-                if (l.parent) continue;
-                var locked = l.locked;
-                l.locked = false;
-                try {
-                    var pos = transform(l, 'ADBE Position'), ok = true;
-                    if (pos.dimensionsSeparated) {
-                        ok = shiftProperty(pos.getSeparationFollower(0), 0, 0, dx) && ok;
-                        ok = shiftProperty(pos.getSeparationFollower(1), 0, 0, dy) && ok;
-                    } else ok = shiftProperty(pos, dx, dy) && ok;
-                    if (l instanceof CameraLayer || l instanceof LightLayer) {
-                        var poi = transform(l, 'ADBE Anchor Point');
-                        if (poi) ok = shiftProperty(poi, dx, dy) && ok;
-                    }
-                    if (!ok) skipped++;
-                } finally { l.locked = locked; }
-            }
+        var c = h.comp(), W = p[0], H = p[1];
+        var layout = o.layout || 'center';
+        if (!LAYOUT_NAMES.hasOwnProperty(layout)) h.fail('Choose how the content should follow the new size.');
+        if (!o.copy && c.width === W && c.height === H) return { message: 'This comp is already ' + W + ' × ' + H + '.' };
+        var oldW = c.width, oldH = c.height, sx = W / oldW, sy = H / oldH;
+        var g = { oldW: oldW, oldH: oldH, W: W, H: H, kx: 1, ky: 1, kz: 1, s: 1 };
+        if (layout === 'fit' || layout === 'fill') { g.s = layout === 'fit' ? Math.min(sx, sy) : Math.max(sx, sy); g.kx = g.s; g.ky = g.s; g.kz = g.s; }
+        else if (layout === 'spread') { g.kx = sx; g.ky = sy; }
+        var target = c;
+        if (o.copy) { target = c.duplicate(); target.name = c.name + ' ' + W + 'x' + H; }
+        target.width = W; target.height = H;
+        var skipped = 0, solids = 0, moved = 0, i, l, wasLocked;
+        for (i = 1; i <= target.numLayers; i++) {
+            l = target.layer(i);
+            if (l.parent) continue; // follows its parent
+            wasLocked = l.locked; l.locked = false;
+            try {
+                if (o.solids && fullFrameSolid(l, oldW, oldH)) { fitSolid(l, W, H); solids++; }
+                else if (layout !== 'none') { if (remapLayer(l, g)) moved++; else skipped++; }
+            } finally { l.locked = wasLocked; }
         }
-        return { message: 'Resized to ' + p[0] + ' × ' + p[1] + (o.center ? ', content kept centred' : '') + '.' + (skipped ? ' ' + plural(skipped, 'layer') + ' with a Position expression were not moved.' : '') };
+        if (o.copy) target.openInViewer();
+        return { message: (o.copy ? 'Made a ' : 'Resized to a ') + W + ' × ' + H + ' comp, content ' + LAYOUT_NAMES[layout] + '. ' + plural(moved, 'layer') + ' moved' + (solids ? ', ' + plural(solids, 'full-frame solid') + ' refitted' : '') + '.' + (skipped ? ' ' + plural(skipped, 'layer') + ' with a Position, Scale or camera expression ' + (skipped === 1 ? 'was' : 'were') + ' not changed.' : ''), moved: moved, solids: solids, skipped: skipped };
     }
 
 

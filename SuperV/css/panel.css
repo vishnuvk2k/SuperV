@@ -129,7 +129,7 @@ input[type=range]{width:100%;height:20px;padding:0;background:none;border:0;acce
 
 /* GIF */
 .export-stage{height:120px;border-radius:8px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font:700 26px Helvetica,Arial,sans-serif}
-.export-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.export-stage img,.export-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .checker{background-color:#34363a;background-image:linear-gradient(45deg,#292b2e 25%,transparent 25%),linear-gradient(-45deg,#292b2e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#292b2e 75%),linear-gradient(-45deg,transparent 75%,#292b2e 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
 .file-label{margin:6px 0 0;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
 #export-result{display:flex;align-items:center;gap:10px}
@@ -172,3 +172,5 @@ input[type=range]{width:100%;height:20px;padding:0;background:none;border:0;acce
 @media (max-width:360px){main{padding:0 10px 12px}header{padding:10px 10px 6px}.tabs{padding:4px 10px 10px}.tiles{gap:6px}.drawer{padding:12px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 [hidden]{display:none!important}
+.hint a{color:var(--blue);text-decoration:underline;text-underline-offset:2px}
+.hint a:hover{color:#4da3ff}
