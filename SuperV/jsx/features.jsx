@@ -87,7 +87,7 @@ function VKFeatures(h) {
         if(o.range==='comp'){start=0;end=c.duration;}
         else if(o.range==='current'){start=c.time;end=start+c.frameDuration;}
         else{start=c.workAreaStart;end=c.workAreaStart+c.workAreaDuration;}
-        var fps=crop?c.frameRate:h.num(o.fps,1,50);
+        var fps=crop?c.frameRate:h.num(o.fps,1,60);
         var total=o.range==='current'?1:Math.max(1,Math.ceil((end-start)*fps-0.0001));
         if(total>18000)h.fail('The range exceeds 18,000 frames. Choose a shorter range.');
         var dir=new Folder(o.directory);

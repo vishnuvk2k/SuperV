@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var VERSION = '1.3.2';
+  var VERSION = '1.4.0';
   var $ = function (id) { return document.getElementById(id); };
   var all = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var cep = window.__adobe_cep__, isAE = !!cep, node = window.cep_node && window.cep_node.require ? window.cep_node.require : (typeof require === 'function' ? require : null);
@@ -52,7 +52,12 @@
     var src = segValue('gif-source'), ch = value('gif-channels');
     $('video-row').hidden = src !== 'video'; $('gif-range-row').hidden = src !== 'comp';
     $('gif-background-row').hidden = ch !== 'rgb'; $('gif-threshold-row').hidden = ch !== 'rgba';
-    $('channel-hint').textContent = ch === 'alpha' ? 'Alpha exports a grayscale mask. Video without alpha comes out white.' : ch === 'rgba' ? 'GIF transparency is hard-edged; soft edges are thresholded.' : 'RGB flattens transparency onto the background colour.';
+    var web = value('gif-format') === 'webm';
+    $('gif-threshold-row').hidden = web || ch !== 'rgba';
+    $('gif-palette-row').hidden = web; $('gif-loop-row').hidden = web; $('webm-quality-row').hidden = !web;
+    $('export-title').textContent = web ? 'Export WebM' : 'Export GIF';
+    var label = $('export-gif').querySelector('span'); if (label) label.textContent = web ? 'Export WebM' : 'Export GIF';
+    $('channel-hint').textContent = ch === 'alpha' ? 'Alpha exports a grayscale mask. Video without alpha comes out white.' : ch === 'rgba' ? (web ? 'WebM keeps true, soft-edged transparency. Plays in Chrome, Edge, Firefox and most editors; Safari support is partial.' : 'GIF transparency is hard-edged; soft edges are thresholded.') : 'RGB flattens transparency onto the background colour.';
   }
 
   /* ---------- AE connection ---------- */
@@ -61,7 +66,7 @@
     if (!connection) return Promise.reject(new Error('The After Effects connection could not start. Reinstall the complete ' + VERSION + ' package.'));
     return connection.call(action, args);
   }
-  function setBusy(v) { busy = v; all('[data-action],#export-gif').forEach(function (b) { b.disabled = v; }); }
+  function setBusy(v) { busy = v; all('[data-action],#export-gif,#bridge-pull,#bridge-latest,#bridge-file').forEach(function (b) { b.disabled = v; }); }
   function setBtn(btn, st) {
     if (!btn || !btn.classList.contains('primary')) return;
     clearTimeout(btn._t); btn.dataset.state = st;
@@ -111,7 +116,11 @@
       case 'splitText': return { by: segValue('split-by'), hideOriginal: checked('split-hide') };
       case 'changeCase': return { mode: segValue('case-mode') };
       case 'textCursor': return { duration: n('cursor-duration'), cursor: value('cursor-char'), blink: n('cursor-blink'), keep: checked('cursor-keep'), replace: checked('cursor-replace') };
-      case 'compPreset': return { preset: segValue('comp-preset'), mode: segValue('comp-mode'), center: checked('comp-center'), fps: n('comp-fps'), duration: n('comp-duration') };
+      case 'compPreset': {
+        var customSize = segValue('comp-preset') === 'custom', resizing = segValue('comp-mode') === 'resize';
+        return { preset: segValue('comp-preset'), mode: segValue('comp-mode'), width: customSize ? n('comp-width') : 0, height: customSize ? n('comp-height') : 0,
+          layout: value('comp-layout'), solids: checked('comp-solids'), copy: checked('comp-copy'), fps: resizing ? 30 : n('comp-fps'), duration: resizing ? 10 : n('comp-duration') };
+      }
       default: return {};
     }
   }
@@ -341,13 +350,15 @@
     if (busy) return;
     var temp = null;
     try {
-      if (!isAE) throw new Error('GIF export runs inside After Effects.');
+      var format = value('gif-format') === 'webm' ? 'webm' : 'gif', FORMAT = format === 'webm' ? 'WebM' : 'GIF';
+      if (!isAE) throw new Error(FORMAT + ' export runs inside After Effects.');
       if (!encoder) throw new Error('The CEP Node runtime is unavailable. Reinstall the extension.');
-      var options = { width: n('gif-width'), fps: n('gif-fps'), channels: value('gif-channels'), colours: n('gif-colours'), dither: value('gif-dither'), loop: n('gif-loop'), threshold: n('gif-threshold'), background: value('gif-background') };
+      var options = { format: format, width: n('gif-width'), fps: n('gif-fps'), channels: value('gif-channels'), colours: n('gif-colours'), dither: value('gif-dither'), loop: n('gif-loop'), threshold: n('gif-threshold'), background: value('gif-background'), quality: value('webm-quality') };
       encoder.buildArgs(Object.assign({}, options, { input: 'check', output: 'check' }));
       setBusy(true); setBtn(btn, 'working'); status('Checking encoder…', 'working'); await encoder.testEncoder(executable());
+      if (format === 'webm' && !(await encoder.hasEncoder(executable(), 'libvpx-vp9'))) throw new Error('This FFmpeg has no VP9 (libvpx-vp9) encoder. Clear the FFmpeg path in Settings to use the included one, or pick a full FFmpeg build.');
       if (segValue('gif-source') === 'video' && !videoPath) throw new Error('Choose a video file first.');
-      var dest = await bridge('pickOutput'); if (!dest.path) { status('Export cancelled.'); setBtn(btn, ''); return; }
+      var dest = await bridge('pickOutput', { format: format }); if (!dest.path) { status('Export cancelled.'); setBtn(btn, ''); return; }
       options.output = dest.path;
       if (segValue('gif-source') === 'comp') {
         temp = encoder.makeTemp();
@@ -356,11 +367,15 @@
         options.input = sequence.input; options.sequence = true;
       } else { options.input = videoPath; options.sequence = false; }
       if (path.resolve(options.input).toLowerCase() === path.resolve(options.output).toLowerCase()) throw new Error('Choose an output different from your source file.');
-      status('Encoding GIF…', 'working'); $('cancel-export').hidden = false;
-      exportJob = encoder.encode(executable(), options, function (chunk) { var match = chunk.match(/frame=(\d+)/); if (match) status('Encoding GIF · ' + match[1] + ' frames', 'working'); });
+      status('Encoding ' + FORMAT + '…', 'working'); $('cancel-export').hidden = false;
+      exportJob = encoder.encode(executable(), options, function (chunk) { var match = chunk.match(/frame=(\d+)/); if (match) status('Encoding ' + FORMAT + ' · ' + match[1] + ' frames', 'working'); });
       var result = await exportJob.promise; outputPath = result.path; $('output-size').textContent = (result.bytes / 1024 / 1024).toFixed(2) + ' MB'; $('export-result').hidden = false;
       var url = node('url').pathToFileURL ? node('url').pathToFileURL(outputPath).href : 'file:///' + outputPath.replace(/\\/g, '/');
-      $('gif-preview').src = url + '?v=' + Date.now(); $('gif-preview').hidden = false; status('GIF exported · ' + outputPath, 'success'); setBtn(btn, 'done');
+      var isWeb = format === 'webm';
+      $('gif-preview').hidden = true; $('webm-preview').hidden = true;
+      if (isWeb) { $('gif-preview').removeAttribute('src'); $('webm-preview').src = url + '?v=' + Date.now(); $('webm-preview').hidden = false; var playing = $('webm-preview').play(); if (playing && playing.catch) playing.catch(function () {}); }
+      else { $('webm-preview').pause(); $('webm-preview').removeAttribute('src'); $('gif-preview').src = url + '?v=' + Date.now(); $('gif-preview').hidden = false; }
+      status(FORMAT + ' exported · ' + outputPath, 'success'); setBtn(btn, 'done');
     } catch (e) { status(e.message, 'error'); setBtn(btn, 'error'); }
     finally { exportJob = null; $('cancel-export').hidden = true; setBusy(false); if (temp) try { encoder.cleanup(temp); } catch (e) { status('Export finished; temporary PNGs remain at ' + temp + '. ' + e.message, 'error'); } }
   }
@@ -385,6 +400,77 @@
       status(result.message, 'success'); setBtn(btn, 'done');
     } catch (e) { status(e.message, 'error'); setBtn(btn, 'error'); }
     finally { setBusy(false); if (temp) try { encoder.cleanup(temp); } catch (e) { status('Temporary PNGs remain at ' + temp + '. ' + e.message, 'error'); } }
+  }
+
+  /* ---------- Illustrator Bridge ---------- */
+  var bridgeLatestPath = '', bridgeStamp = 0, bridgeWatching = false;
+  function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+  function bridgeLatestFile() {
+    if (bridgeLatestPath) return bridgeLatestPath;
+    if (!node || !path) return '';
+    var os = node('os'), roaming = (typeof process !== 'undefined' && process.env && process.env.APPDATA) || path.join(os.homedir(), 'AppData', 'Roaming');
+    bridgeLatestPath = path.join(roaming, 'SuperV-Bridge', 'latest.json');
+    return bridgeLatestPath;
+  }
+  function readBridgeLatest() {
+    var file = bridgeLatestFile();
+    if (!file || !fs) return null;
+    try {
+      var info = JSON.parse(fs.readFileSync(file, 'utf8'));
+      return info && typeof info.ok === 'boolean' && typeof info.stamp === 'number' ? info : null;
+    } catch (e) { return null; }
+  }
+  function bridgeOptions() { return { as: segValue('bridge-as'), shapes: checked('bridge-shapes'), crisp: checked('bridge-crisp'), into: checked('bridge-into') }; }
+  async function bridgeImport(filePath, btn) {
+    return run('bridgeImport', Object.assign({ path: filePath }, bridgeOptions()), btn);
+  }
+  async function bridgePull(btn) {
+    if (busy) return;
+    if (!isAE) { status('Illustrator Bridge runs inside After Effects.', 'error'); return; }
+    var before = (readBridgeLatest() || {}).stamp || 0, sent = await run('bridgePull', {}, btn);
+    if (!sent) return;
+    var info = null;
+    setBusy(true); setBtn(btn, 'working');
+    try {
+      status('Waiting for Illustrator to send the open document…', 'working');
+      for (var waited = 0; waited < 30000 && !info; waited += 400) {
+        await sleep(400);
+        var now = readBridgeLatest();
+        if (now && now.stamp !== before) info = now;
+      }
+      if (!info) throw new Error('Illustrator did not answer within 30 seconds. Check that it has a document open and is not showing a dialog, then try again.');
+      if (!info.ok) throw new Error(info.error || 'Illustrator could not send the document.');
+    } catch (e) { status(e.message, 'error'); setBtn(btn, 'error'); setBusy(false); return; }
+    setBusy(false);
+    bridgeStamp = info.stamp;
+    await bridgeImport(info.path, btn);
+  }
+  async function bridgeLast(btn) {
+    var info = readBridgeLatest();
+    if (!info) { status('Nothing has been pushed from Illustrator yet. Use Pull from Illustrator, or choose an .ai file.', 'error'); return; }
+    if (!info.ok) { status(info.error || 'The last push from Illustrator failed.', 'error'); return; }
+    bridgeStamp = info.stamp;
+    await bridgeImport(info.path, btn);
+  }
+  async function bridgeChoose(btn) {
+    var picked = await run('pickFile', { title: 'Choose an Illustrator file' });
+    if (picked && picked.path) await bridgeImport(picked.path, btn);
+  }
+  function bridgeWatch(on) {
+    if (!fs || !isAE) { if (on) { $('bridge-watch').checked = false; status('Automatic import works inside After Effects.', 'error'); } return; }
+    var file = bridgeLatestFile();
+    if (!on) { if (bridgeWatching) fs.unwatchFile(file); bridgeWatching = false; return; }
+    if (bridgeWatching) return;
+    bridgeStamp = (readBridgeLatest() || {}).stamp || bridgeStamp; // ignore whatever was pushed before watching started
+    fs.watchFile(file, { interval: 800 }, function () {
+      var info = readBridgeLatest();
+      if (!info || info.stamp === bridgeStamp) return;
+      if (busy) return; // pick it up on the next change
+      bridgeStamp = info.stamp;
+      if (!info.ok) { status(info.error || 'Illustrator could not send the document.', 'error'); return; }
+      bridgeImport(info.path, null);
+    });
+    bridgeWatching = true; status('Watching for pushes from Illustrator…', 'success');
   }
 
   /* ---------- Start up ---------- */
@@ -431,8 +517,18 @@
   ['text-duration', 'text-stagger', 'text-by'].forEach(function (id) { $(id).addEventListener('change', playPreview); });
   $('replay').onclick = playPreview;
   $('gif-channels').addEventListener('change', updateDependents);
+  $('gif-format').addEventListener('change', updateDependents);
 
   $('export-gif').onclick = function () { exportGIF(this); };
+  $('bridge-pull').onclick = function () { bridgePull(this); };
+  $('bridge-latest').onclick = function () { bridgeLast(this); };
+  $('bridge-file').onclick = function () { bridgeChoose(this); };
+  $('bridge-watch').addEventListener('change', function () { bridgeWatch(this.checked); });
+  $('bridge-show-script').onclick = function (e) {
+    e.preventDefault();
+    var script = extensionRoot ? extensionRoot.replace(/\//g, '\\') + '\\bridge\\SuperV-Push-to-AE.jsx' : '';
+    if (node && script) node('child_process').execFile('explorer.exe', ['/select,', script], { windowsHide: true }, function () {}); else status('The Illustrator script is inside the SuperV install folder, in the bridge folder.', 'error');
+  };
   $('cancel-export').onclick = function () { cancelRender = true; if (exportJob) exportJob.cancel(); };
   $('crop-cancel').onclick = function () { cancelRender = true; status('Cancelling after the current frames…', 'working'); };
   $('pick-video').onclick = async function () { var r = await run('pickFile', { title: 'Choose a video to convert' }); if (r && r.path) { videoPath = r.path; $('video-label').textContent = videoPath; } };
@@ -450,11 +546,12 @@
   };
   $('reset-settings').onclick = function () { try { localStorage.removeItem('vk.gsd.settings.v1'); } catch (_) {} location.reload(); };
   all('input,select').forEach(function (el) {
-    if (!el.id || el.id === 'encoder-path') return;
+    if (!el.id || el.id === 'encoder-path' || el.id === 'bridge-watch') return;
     el.addEventListener('change', function () { state.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value; save(); });
   });
 
   showTab(state.ui.tab === 'text' ? 'text' : 'effects');
   if (state.ui.effects) openTool('effects', state.ui.effects);
   if (state.ui.text) openTool('text', state.ui.text);
+  window.__vkBooted = true;
 })();

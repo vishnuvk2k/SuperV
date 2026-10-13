@@ -5,6 +5,35 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SuperV</title>
 <link rel="stylesheet" href="css/panel.css">
+<script>
+/* Start-up guard: if a script fails to load or throws while starting, say so on screen instead of leaving a blank panel. */
+(function () {
+  var shown = false;
+  function banner(message) {
+    if (shown) return; shown = true;
+    function put() {
+      var box = document.createElement('div');
+      box.id = 'boot-error';
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;padding:12px 14px;background:#3a1212;color:#ffd6d6;font:12px/1.5 Segoe UI,Arial,sans-serif;border-bottom:2px solid #ff5a5a';
+      box.innerHTML = '<b>SuperV could not start.</b><br>' + String(message).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) +
+        '<br><br>Fix: close After Effects, double-click <b>INSTALL.cmd</b> again (not as administrator), then reopen the panel. Still stuck? Run <b>scripts\\Check-SuperV.ps1</b> and read its report.';
+      (document.body || document.documentElement).appendChild(box);
+    }
+    if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+  }
+  window.__vkBootError = banner;
+  window.addEventListener('error', function (e) {
+    if (window.__vkBooted) return; // only report problems that stop the panel from starting
+    var src = e && e.filename ? String(e.filename).split(/[\\/]/).pop() : '';
+    if (e && e.target && e.target !== window && (e.target.src || e.target.href)) { banner('A file did not load: ' + String(e.target.src || e.target.href).split(/[\\/]/).pop()); return; }
+    banner((e && e.message ? e.message : 'Unknown error') + (src ? ' (' + src + (e.lineno ? ':' + e.lineno : '') + ')' : ''));
+  }, true);
+  window.addEventListener('load', function () {
+    setTimeout(function () { if (!window.__vkBooted) banner('The panel script did not finish starting.'); }, 2500);
+  });
+})();
+</script>
 </head>
 <body>
 <header>
@@ -33,7 +62,8 @@
     <button class="tile" data-tool="depth"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l6-3v11l-6 3z"/><path d="M10 7l5-2.5v11L10 18z"/><path d="M16 6l5-2v11l-5 2z"/></svg><span>Depth</span></button>
     <button class="tile" data-tool="counter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3 7.5 21M16.5 3l-2 18M4 8.5h16.5M3.5 15.5H20"/></svg><span>Counter</span></button>
     <button class="tile" data-tool="comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="13" height="9" rx="1.2"/><rect x="16" y="3" width="6" height="18" rx="1.2"/></svg><span>Comp size</span></button>
-    <button class="tile" data-tool="gif"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M9 10H7v4h2v-2M12 10v4M15 14v-4h2.8M15 12h2"/></svg><span>GIF</span></button>
+    <button class="tile" data-tool="gif"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M9 10H7v4h2v-2M12 10v4M15 14v-4h2.8M15 12h2"/></svg><span>GIF / WebM</span></button>
+    <button class="tile" data-tool="bridge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="3.5" width="9" height="9" rx="1.6"/><rect x="12.5" y="11.5" width="9" height="9" rx="1.6"/><path d="M12 8h3a2 2 0 0 1 2 2v1.5"/><path d="M15.3 9.7 17 11.4l1.7-1.7"/></svg><span>Illustrator</span></button>
     <button class="tile" data-tool="organize"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6V4h6l2 2h10v14H3z"/><path d="M3 9h18"/></svg><span>Organize</span></button>
     <button class="tile" data-tool="duplicate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Duplicate</span></button>
   </div>
@@ -180,38 +210,68 @@
         <button data-value="vertical">Reels · Story<small>1080×1920</small></button>
         <button data-value="square">Square<small>1080×1080</small></button>
         <button data-value="portrait">Portrait 4:5<small>1080×1350</small></button>
+        <button data-value="custom">Custom<small>any size</small></button>
       </div>
-      <div class="seg" id="comp-mode"><button data-value="create" class="on">New comp</button><button data-value="resize">Resize current</button></div>
+      <div class="row" data-show-for="comp-preset" data-show="custom">
+        <label>Width (px)<input id="comp-width" type="number" min="4" max="30000" step="1" value="1920"></label>
+        <label>Height (px)<input id="comp-height" type="number" min="4" max="30000" step="1" value="1080"></label>
+      </div>
+      <div class="seg" id="comp-mode"><button data-value="create" class="on">New comp</button><button data-value="resize">SmartResize</button></div>
       <div class="row" data-show-for="comp-mode" data-show="create">
         <label>Frame rate<input id="comp-fps" type="number" min="1" max="120" step="0.001" value="30"></label>
         <label>Duration (s)<input id="comp-duration" type="number" min="0.1" max="10800" step="0.1" value="10"></label>
       </div>
-      <label class="check" data-show-for="comp-mode" data-show="resize"><input id="comp-center" type="checkbox" checked>Keep content centred</label>
+      <div data-show-for="comp-mode" data-show="resize">
+        <label>Content<select id="comp-layout">
+          <option value="fit">Scale to fit · everything stays visible</option>
+          <option value="fill">Scale to fill · no empty bars</option>
+          <option value="spread">Spread out · move layers, keep their size</option>
+          <option value="center">Keep size, centred</option>
+          <option value="none">Change the size only</option>
+        </select></label>
+        <label class="check"><input id="comp-solids" type="checkbox" checked>Full-frame solids and adjustment layers fill the new size</label>
+        <label class="check"><input id="comp-copy" type="checkbox" checked>Resize a copy and keep the original comp</label>
+      </div>
       <button class="primary" data-action="compPreset"><span>Apply size</span></button>
+      <p class="hint" data-show-for="comp-mode" data-show="resize">SmartResize moves, scales and re-aims everything for the new frame, including keyframes, motion paths and cameras. Layers inside a parent follow the parent. Layers whose Position or Scale is driven by an expression are skipped and counted.</p>
     </div>
 
     <div class="opts" data-tool="gif" hidden>
-      <h3>Export GIF</h3>
-      <div class="export-stage checker"><span>SuperV</span><img id="gif-preview" alt="Exported GIF preview" hidden></div>
+      <h3 id="export-title">Export GIF</h3>
+      <div class="export-stage checker"><span>SuperV</span><img id="gif-preview" alt="Exported GIF preview" hidden><video id="webm-preview" muted loop playsinline hidden></video></div>
+      <label>Format<select id="gif-format"><option value="gif">GIF · animated image</option><option value="webm">WebM · VP9 video</option></select></label>
       <div class="seg" id="gif-source"><button data-value="comp" class="on">Composition</button><button data-value="video">Video file</button></div>
       <div id="video-row" hidden><button id="pick-video" class="secondary">Choose video</button><p class="file-label" id="video-label">No file selected</p></div>
       <label id="gif-range-row">Range<select id="gif-range"><option value="workarea">Work area</option><option value="comp">Full composition</option></select></label>
       <div class="row">
         <label>Width (px)<input id="gif-width" type="number" min="16" max="4096" value="800" step="1"></label>
-        <label>FPS<input id="gif-fps" type="number" min="1" max="50" value="24"></label>
+        <label>FPS<input id="gif-fps" type="number" min="1" max="60" value="24"></label>
       </div>
       <label>Channels<select id="gif-channels"><option value="rgb">RGB</option><option value="alpha">Alpha</option><option value="rgba">RGB + alpha</option></select></label>
       <label id="gif-background-row">Background<input type="color" id="gif-background" value="#202124"></label>
       <label id="gif-threshold-row" hidden>Alpha threshold<input id="gif-threshold" type="number" min="0" max="255" value="128"></label>
-      <div class="row">
+      <label id="webm-quality-row" hidden>Quality<select id="webm-quality"><option value="high">High · larger file</option><option value="balanced" selected>Balanced</option><option value="small">Small file</option></select></label>
+      <div class="row" id="gif-palette-row">
         <label>Colours<select id="gif-colours"><option>256</option><option>128</option><option>64</option><option>32</option></select></label>
         <label>Dither<select id="gif-dither"><option value="sierra2_4a">Smooth</option><option value="bayer">Pattern</option><option value="none">None</option></select></label>
       </div>
-      <label>Loop<select id="gif-loop"><option value="0">Forever</option><option value="-1">Play once</option><option value="1">Repeat once</option><option value="2">Repeat twice</option></select></label>
+      <label id="gif-loop-row">Loop<select id="gif-loop"><option value="0">Forever</option><option value="-1">Play once</option><option value="1">Repeat once</option><option value="2">Repeat twice</option></select></label>
       <p class="hint" id="channel-hint">RGB flattens transparency onto the background colour.</p>
       <button id="export-gif" class="primary"><span>Export GIF</span></button>
       <button id="cancel-export" class="secondary" hidden>Cancel</button>
       <div id="export-result" hidden><button id="show-output" class="secondary">Show exported file</button><span id="output-size" class="badge"></span></div>
+    </div>
+
+    <div class="opts" data-tool="bridge" hidden>
+      <h3>Illustrator Bridge</h3>
+      <div class="seg" id="bridge-as"><button data-value="comp" class="on">Layers</button><button data-value="cropped">Layers, trimmed</button><button data-value="footage">One image</button></div>
+      <label class="check"><input id="bridge-shapes" type="checkbox">Convert to editable shape layers</label>
+      <label class="check"><input id="bridge-crisp" type="checkbox" checked>Keep vectors sharp when scaled</label>
+      <label class="check"><input id="bridge-into" type="checkbox">Also add the artwork to the open comp</label>
+      <button id="bridge-pull" class="primary"><span>Pull from Illustrator</span></button>
+      <div class="pair"><button id="bridge-latest" class="secondary">Import last push</button><button id="bridge-file" class="secondary">Choose .ai file</button></div>
+      <label class="check"><input id="bridge-watch" type="checkbox">Import automatically whenever Illustrator pushes</label>
+      <p class="hint" id="bridge-info">Pull saves the document that is open in Illustrator and brings it in as a comp with its layers. Nothing to install in Illustrator. Prefer pushing from Illustrator? <a id="bridge-show-script" href="#">Show the Illustrator script</a>, then run it from File &gt; Scripts &gt; Other Script.</p>
     </div>
 
     <div class="opts" data-tool="organize" hidden>
@@ -320,7 +380,7 @@
         <p class="about-name">SuperV</p>
         <p class="about-tag">Everyday motion tools for After Effects</p>
       </div>
-      <span class="about-ver" id="about-version">1.3.2</span>
+      <span class="about-ver" id="about-version">1.4.0</span>
     </div>
 
     <div class="status-list">

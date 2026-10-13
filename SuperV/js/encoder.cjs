@@ -10,7 +10,45 @@ function number(v, min, max, name) {
   if (!Number.isFinite(n) || n < min || n > max) throw new Error(name + ' must be between ' + min + ' and ' + max + '.');
   return n;
 }
+function backgroundRgb(o) {
+  if (!/^#[0-9a-f]{6}$/i.test(o.background)) throw new Error('Invalid background colour.');
+  return [1, 3, 5].map(i => parseInt(o.background.slice(i, i + 2), 16));
+}
+function inputArgs(o, fps) {
+  const args = ['-hide_banner', '-nostdin', '-y'];
+  if (o.sequence) args.push('-framerate', String(fps), '-start_number', '0');
+  args.push('-i', o.input);
+  return args;
+}
+function flattenOnBackground(rgb) {
+  return ',split[fg][bg];[bg]lutrgb=r=' + rgb[0] + ':g=' + rgb[1] + ':b=' + rgb[2] + ',lut=a=255[base];[base][fg]overlay=shortest=1:format=auto';
+}
+// WebM: VP9 video. "RGB + alpha" keeps real, soft-edged transparency (yuva420p); the other two channels are opaque.
+const WEBM_QUALITY = { high: 24, balanced: 32, small: 40 };
+function buildWebmArgs(o) {
+  let width = Math.round(number(o.width, 16, 4096, 'Width'));
+  width -= width % 2; // yuv420p needs even dimensions
+  const fps = number(o.fps, 1, 60, 'FPS');
+  if (!['rgb', 'rgba', 'alpha'].includes(o.channels)) throw new Error('Invalid channels.');
+  const quality = o.quality === undefined ? 'balanced' : o.quality;
+  if (!Object.prototype.hasOwnProperty.call(WEBM_QUALITY, quality)) throw new Error('Invalid WebM quality.');
+  const rgb = backgroundRgb(o);
+  const args = inputArgs(o, fps);
+  let graph = '[0:v]fps=' + fps + ':round=up,scale=' + width + ':-2:flags=lanczos,setsar=1,format=rgba';
+  let pix = 'yuv420p';
+  if (o.channels === 'alpha') graph += ',alphaextract,format=yuv420p[out]';
+  else if (o.channels === 'rgb') graph += flattenOnBackground(rgb) + ',format=yuv420p[out]';
+  else { graph += ',format=yuva420p[out]'; pix = 'yuva420p'; }
+  args.push('-filter_complex', graph, '-map', '[out]', '-an', '-c:v', 'libvpx-vp9', '-pix_fmt', pix,
+    '-b:v', '0', '-crf', String(WEBM_QUALITY[quality]), '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2');
+  // libvpx-vp9 can only store alpha when the alt-ref frame is off.
+  if (pix === 'yuva420p') args.push('-auto-alt-ref', '0', '-metadata:s:v:0', 'alpha_mode=1');
+  args.push('-progress', 'pipe:1', '-f', 'webm', o.output);
+  return args;
+}
 function buildArgs(o) {
+  if (o.format === 'webm') return buildWebmArgs(o);
+  if (o.format !== undefined && o.format !== 'gif') throw new Error('Invalid export format.');
   const width = Math.round(number(o.width, 16, 4096, 'Width'));
   const fps = number(o.fps, 1, 50, 'FPS');
   const colours = number(o.colours, 4, 256, 'Colours');
@@ -18,22 +56,28 @@ function buildArgs(o) {
   const loops = number(o.loop, -1, 65535, 'Loop count');
   if (!['rgb', 'rgba', 'alpha'].includes(o.channels)) throw new Error('Invalid channels.');
   if (!['none', 'bayer', 'sierra2_4a'].includes(o.dither)) throw new Error('Invalid dithering.');
-  if (!/^#[0-9a-f]{6}$/i.test(o.background)) throw new Error('Invalid background colour.');
-  const args = ['-hide_banner', '-nostdin', '-y'];
-  if (o.sequence) args.push('-framerate', String(fps), '-start_number', '0');
-  args.push('-i', o.input);
+  const rgb = backgroundRgb(o);
+  const args = inputArgs(o, fps);
   let graph = '[0:v]fps=' + fps + ':round=up,scale=' + width + ':-1:flags=lanczos,setsar=1,format=rgba';
   if (o.channels === 'alpha') {
     graph += ',alphaextract[clean];';
   } else if (o.channels === 'rgb') {
-    const rgb = [1, 3, 5].map(i => parseInt(o.background.slice(i, i + 2), 16));
-    graph += ',split[fg][bg];[bg]lutrgb=r=' + rgb[0] + ':g=' + rgb[1] + ':b=' + rgb[2] + ',lut=a=255[base];[base][fg]overlay=shortest=1:format=auto,format=rgb24[clean];';
+    graph += flattenOnBackground(rgb) + ',format=rgb24[clean];';
   } else {
     graph += '[clean];';
   }
   graph += '[clean]split[palin][pixels];[palin]palettegen=max_colors=' + colours + ':reserve_transparent=' + (o.channels === 'rgba' ? '1' : '0') + '[palette];[pixels][palette]paletteuse=dither=' + o.dither + ':alpha_threshold=' + threshold + '[gif]';
   args.push('-filter_complex', graph, '-map', '[gif]', '-an', '-loop', String(loops), '-progress', 'pipe:1', '-f', 'gif', o.output);
   return args;
+}
+// Ask FFmpeg whether a named encoder (for example libvpx-vp9) is built in, so a missing codec gives a clear message.
+function hasEncoder(executable, name) {
+  return new Promise((resolve, reject) => {
+    childProcess.execFile(executable, ['-hide_banner', '-encoders'], { windowsHide: true, timeout: 15000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => {
+      if (err) return reject(new Error('Cannot run FFmpeg. ' + err.message));
+      resolve(new RegExp('^\\s*V\\S*\\s+' + name + '\\s', 'm').test(stdout));
+    });
+  });
 }
 function testEncoder(executable) {
   return new Promise((resolve, reject) => {
@@ -57,7 +101,7 @@ function cleanup(dir) {
 }
 function encode(executable, options, onProgress) {
   const token = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
-  const temporaryOutput = options.output + '.vk-' + token + '.gif';
+  const temporaryOutput = options.output + '.vk-' + token + (options.format === 'webm' ? '.webm' : '.gif');
   const args = buildArgs(Object.assign({}, options, { output: temporaryOutput }));
   let child, cancelled = false;
   const promise = new Promise((resolve, reject) => {
@@ -212,4 +256,4 @@ function unpackBundled(binDir) {
   });
 }
 
-module.exports = { bundledParts, bundledEncoderReady, unpackBundled, buildArgs, testEncoder, makeTemp, cleanup, encode, validateSequence, alphaBounds, completePNG, waitForPNG };
+module.exports = { hasEncoder, bundledParts, bundledEncoderReady, unpackBundled, buildArgs, testEncoder, makeTemp, cleanup, encode, validateSequence, alphaBounds, completePNG, waitForPNG };
