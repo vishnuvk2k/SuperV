@@ -1,4 +1,4 @@
-# SuperV 1.4.0
+# SuperV 1.3.2
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
 
@@ -21,7 +21,7 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 2. Still blank? Run **scripts\Check-SuperV.ps1** (right-click, Run with PowerShell). It reports the user, the files, both registry flags and any "blocked" files. Add `-Fix` to repair the registry flag and unblock the files.
 3. If a script fails to load or crashes while starting, the panel now shows a red message at the top instead of staying empty.
 
-## New in 1.4.0
+## New in 1.3.2
 
 - **WebM export.** The GIF tile is now **GIF / WebM**. A Format menu switches between an animated GIF and a VP9 WebM video. WebM keeps real, soft-edged transparency (RGB + alpha), and has a Quality menu (High, Balanced, Small) and up to 60 fps. Works with a comp or a video file.
 - **SmartResize.** The Comp size tile's *Resize current* mode is now **SmartResize**. Choose how everything follows the new frame: scale to fit, scale to fill, spread out (move layers, keep their size), keep centred, or change the size only. Keyframes, spatial motion paths, separated X/Y/Z, cameras (zoom and focus distance) and lights are all carried across, layers inside a parent follow their parent, and expression-driven layers are skipped and counted. Full-frame solids and adjustment layers are refitted to the new size. *Resize a copy* (on by default) leaves your original comp untouched. A **Custom** size takes any width and height.
@@ -29,7 +29,7 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 - **GIF options.** Render preset (Alpha Only, High Quality, High Quality with Alpha, Lossless, Lossless with Alpha), Framerate (As comp by default), Max colors and Compress (None to Insane) for smaller files; non-lossless presets render at the output size to save time.
 - **Blank-panel fixes.** The installer warns when run as Administrator, clears the "downloaded from the internet" mark from every file, sets the unsigned-extension flag for CSXS 11 to 13, and verifies files and flags before it reports success. New **scripts\Check-SuperV.ps1** diagnoses and repairs a broken install. The panel shows a visible error if it cannot start.
 
-## New in 1.3.2
+## Earlier in 1.3.2
 
 - **Lighter install.** The packed FFmpeg parts (`ffmpeg.gz.000`, `.001`, 37 MB together) are deleted automatically once `ffmpeg.exe` has been unpacked, by both the installer and the panel.
 - **The encoder survives an uninstall.** Installing straight after running UNINSTALL.cmd used to leave `bin/` with only the licence and readme, because the encoder had already been moved into `%APPDATA%\SuperV-Backups`. The installer now searches those backups too, newest first.
