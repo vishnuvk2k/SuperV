@@ -424,5 +424,76 @@ function VKMore(h) {
         }
         return { message: 'Spread ' + plural(used.length, 'layer') + ' in depth, ' + spacing + ' px apart' + (o.keepSize ? ', same size through the camera' : '') + '.' + made + (skipped ? ' Skipped ' + plural(skipped, 'layer') + ' (cameras, lights, parented, locked or animated).' : '') };
     }
-    return { textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor,  compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
+
+    // Decomp: unpack selected precomp layers back into the parent comp (the reverse of Precompose).
+    function decomp() {
+        var c = h.comp(), sel = c.selectedLayers, picked = [], i, k;
+        for (i = 0; i < sel.length; i++) if (sel[i].source instanceof CompItem) picked.push(sel[i]);
+        if (!picked.length) h.fail('Select one or more precomp layers to unpack.');
+        var done = 0, made = 0, notes = [], select = [];
+        function isDefault(L, pre) {
+            var t = L.property('ADBE Transform Group'), names = ['ADBE Anchor Point', 'ADBE Position', 'ADBE Scale', 'ADBE Rotate Z'], want = [[pre.width / 2, pre.height / 2], [c.width / 2, c.height / 2], [100, 100, 100], 0], j, p, v, w, d;
+            if (L.parent) return false;
+            for (j = 0; j < names.length; j++) {
+                p = t.property(names[j]); if (p.numKeys || p.expressionEnabled) return false;
+                v = p.value; w = want[j];
+                if (typeof w === 'number') { if (Math.abs(v - w) > 0.001) return false; }
+                else for (d = 0; d < w.length && d < v.length; d++) if (Math.abs(v[d] - w[d]) > 0.001) return false;
+            }
+            return true;
+        }
+        function copyProp(from, to) {
+            var n;
+            if (from.numKeys) { for (n = 1; n <= from.numKeys; n++) to.setValueAtTime(from.keyTime(n), from.keyValue(n)); }
+            else to.setValue(from.value);
+        }
+        for (i = 0; i < picked.length; i++) {
+            var L = picked[i], pre = L.source, name = L.name;
+            if (L.locked) { notes.push('"' + name + '" is locked'); continue; }
+            if (L.threeDLayer) { notes.push('"' + name + '" is 3D'); continue; }
+            if (L.timeRemapEnabled) { notes.push('"' + name + '" uses Time Remap'); continue; }
+            if (Math.abs(L.stretch - 100) > 0.001) { notes.push('"' + name + '" is time-stretched'); continue; }
+            if (!pre.numLayers) { L.remove(); done++; continue; }
+            var carrier = null;
+            if (!isDefault(L, pre)) {
+                carrier = c.layers.addNull(c.duration);
+                carrier.name = name + ' (decomp)';
+                var lt = L.property('ADBE Transform Group'), ct = carrier.property('ADBE Transform Group'), pn = ['ADBE Anchor Point', 'ADBE Position', 'ADBE Scale', 'ADBE Rotate Z'];
+                for (k = 0; k < pn.length; k++) copyProp(lt.property(pn[k]), ct.property(pn[k]));
+                carrier.inPoint = L.inPoint; carrier.outPoint = L.outPoint;
+                if (L.parent) carrier.parent = L.parent;
+                carrier.moveBefore(L);
+            }
+            var copies = [];
+            for (k = 1; k <= pre.numLayers; k++) {
+                pre.layer(k).copyToComp(c);
+                var n = c.layer(1);
+                n.startTime = n.startTime + L.startTime;
+                if (n.inPoint < L.inPoint) n.inPoint = L.inPoint;
+                if (n.outPoint > L.outPoint) n.outPoint = L.outPoint;
+                n.moveBefore(L);
+                copies.push(n);
+            }
+            for (k = 1; k <= pre.numLayers; k++) {
+                var par = pre.layer(k).parent;
+                if (par) copies[k - 1].parent = copies[par.index - 1];
+                else if (carrier) copies[k - 1].parent = carrier;
+                else if (L.parent) copies[k - 1].parent = L.parent;
+                else copies[k - 1].parent = null;
+                select.push(copies[k - 1]);
+            }
+            var lost = [];
+            if (L.property('ADBE Transform Group').property('ADBE Opacity').value < 100 || L.property('ADBE Transform Group').property('ADBE Opacity').numKeys) lost.push('opacity');
+            if (L.blendingMode !== BlendingMode.NORMAL) lost.push('blend mode');
+            if (L.property('ADBE Effect Parade') && L.property('ADBE Effect Parade').numProperties) lost.push('effects');
+            if (L.hasTrackMatte) lost.push('track matte');
+            if (lost.length) notes.push('"' + name + '" had ' + lost.join(', ') + ' that cannot be passed down');
+            L.remove(); done++; made += copies.length;
+        }
+        for (i = 1; i <= c.numLayers; i++) c.layer(i).selected = false;
+        for (i = 0; i < select.length; i++) select[i].selected = true;
+        if (!done) h.fail('Nothing was unpacked: ' + notes.join('; ') + '.');
+        return { message: 'Unpacked ' + done + ' precomp' + (done === 1 ? '' : 's') + ' into ' + made + ' layer' + (made === 1 ? '' : 's') + '.' + (notes.length ? ' Note: ' + notes.join('; ') + '.' : '') };
+    }
+    return { decomp: decomp, textBox: textBox, splitText: splitText, changeCase: changeCase, textCursor: textCursor, removeCursor: removeCursor,  compPreset: compPreset, spin: spin, stopSpin: stopSpin, depth: depth };
 }
