@@ -46,10 +46,11 @@
     if (!quiet) { state.fields[id] = v; save(); }
     updateDependents();
   }
+  function channelsOf(p) { return p === 'alpha' ? 'alpha' : (p === 'hqa' || p === 'losslessa') ? 'rgba' : 'rgb'; }
   function updateDependents() {
     all('[data-show-for]').forEach(function (el) { el.hidden = el.dataset.show.split(' ').indexOf(segValue(el.dataset.showFor)) < 0; });
     all('[data-label-for]').forEach(function (el) { var v = segValue(el.dataset.labelFor); if (el.dataset[v]) el.textContent = el.dataset[v]; });
-    var src = segValue('gif-source'), ch = value('gif-channels');
+    var src = segValue('gif-source'), ch = channelsOf(value('gif-preset'));
     $('video-row').hidden = src !== 'video'; $('gif-range-row').hidden = src !== 'comp';
     $('gif-background-row').hidden = ch !== 'rgb'; $('gif-threshold-row').hidden = ch !== 'rgba';
     var web = value('gif-format') === 'webm';
@@ -66,7 +67,7 @@
     if (!connection) return Promise.reject(new Error('The After Effects connection could not start. Reinstall the complete ' + VERSION + ' package.'));
     return connection.call(action, args);
   }
-  function setBusy(v) { busy = v; all('[data-action],#export-gif,#bridge-pull,#bridge-latest,#bridge-file').forEach(function (b) { b.disabled = v; }); }
+  function setBusy(v) { busy = v; all('[data-action],#export-gif').forEach(function (b) { b.disabled = v; }); }
   function setBtn(btn, st) {
     if (!btn || !btn.classList.contains('primary')) return;
     clearTimeout(btn._t); btn.dataset.state = st;
@@ -102,9 +103,7 @@
   /* ---------- Tool arguments ---------- */
   function toolArgs(action) {
     switch (action) {
-      case 'crop': return { mode: segValue('crop-mode'), scope: value('crop-scope'), range: value('crop-range'), padding: n('crop-padding') };
-      case 'null': return { position: value('null-position'), parent: checked('null-parent') };
-      case 'copyKeys': case 'pasteKeys': return { expressions: checked('keys-expressions'), offset: value('keys-offset') };
+      case 'null': return { position: 'selection', parent: true };
       case 'loop': return { direction: value('loop-direction'), type: value('loop-type'), count: n('loop-count'), replace: checked('loop-replace') };
       case 'wiggle': return { amount: n('wiggle-pixels'), frequency: n('wiggle-speed'), replace: checked('wiggle-replace') };
       case 'ease': return { curve: easeEffective(), mode: segValue('ease-mode'), linear: easeFamily === 'linear' };
@@ -353,16 +352,18 @@
       var format = value('gif-format') === 'webm' ? 'webm' : 'gif', FORMAT = format === 'webm' ? 'WebM' : 'GIF';
       if (!isAE) throw new Error(FORMAT + ' export runs inside After Effects.');
       if (!encoder) throw new Error('The CEP Node runtime is unavailable. Reinstall the extension.');
-      var options = { format: format, width: n('gif-width'), fps: n('gif-fps'), channels: value('gif-channels'), colours: n('gif-colours'), dither: value('gif-dither'), loop: n('gif-loop'), threshold: n('gif-threshold'), background: value('gif-background'), quality: value('webm-quality') };
+      var options = { format: format, width: n('gif-width'), fps: value('gif-fps') === 'comp' ? 0 : n('gif-fps'), channels: channelsOf(value('gif-preset')), colours: n('gif-colours'), compress: value('gif-compress'), loop: n('gif-loop'), threshold: n('gif-threshold'), background: value('gif-background'), quality: value('webm-quality') };
       encoder.buildArgs(Object.assign({}, options, { input: 'check', output: 'check' }));
       setBusy(true); setBtn(btn, 'working'); status('Checking encoder…', 'working'); await encoder.testEncoder(executable());
       if (format === 'webm' && !(await encoder.hasEncoder(executable(), 'libvpx-vp9'))) throw new Error('This FFmpeg has no VP9 (libvpx-vp9) encoder. Clear the FFmpeg path in Settings to use the included one, or pick a full FFmpeg build.');
+      if (segValue('gif-source') === 'video' && !options.fps) options.fps = 24;
       if (segValue('gif-source') === 'video' && !videoPath) throw new Error('Choose a video file first.');
       var dest = await bridge('pickOutput', { format: format }); if (!dest.path) { status('Export cancelled.'); setBtn(btn, ''); return; }
       options.output = dest.path;
       if (segValue('gif-source') === 'comp') {
         temp = encoder.makeTemp();
-        var rendered = await renderVerified({ purpose: 'gif', directory: temp, range: value('gif-range'), fps: options.fps }, 'cancel-export');
+        var rendered = await renderVerified({ purpose: 'gif', directory: temp, range: value('gif-range'), fps: options.fps || 0, maxFps: format === 'gif' ? 50 : 60, targetWidth: options.width, reduce: /^hq/.test(value('gif-preset')) || value('gif-preset') === 'alpha' }, 'cancel-export');
+        options.fps = rendered.fps;
         var sequence = encoder.validateSequence(temp, rendered.frames);
         options.input = sequence.input; options.sequence = true;
       } else { options.input = videoPath; options.sequence = false; }
@@ -381,96 +382,7 @@
   }
   async function cropComp(btn) {
     if (busy) return;
-    var temp = null, options;
-    try { options = toolArgs('crop'); } catch (e) { status(e.message, 'error'); return; }
-    if (options.mode !== 'exact') { await run('cropFast', options, btn); return; }
-    try {
-      if (!encoder) throw new Error('Open the extension inside After Effects. Exact crop uses the included encoder.');
-      setBusy(true); setBtn(btn, 'working');
-      await encoder.testEncoder(executable()); temp = encoder.makeTemp();
-      status('Measuring artwork at half size…', 'working');
-      var measurement = await renderVerified({ purpose: 'crop', scope: options.scope, range: options.range, directory: temp, scale: 2 }, 'crop-cancel');
-      var sequence = encoder.validateSequence(temp, measurement.frames);
-      status('Reading rendered transparency…', 'working');
-      var b = await encoder.alphaBounds(executable(), sequence, function (frame, total) { status('Measuring transparency · ' + frame + ' / ' + total + ' frames', 'working'); });
-      var rx = measurement.width / sequence.width, ry = measurement.height / sequence.height, extra = rx > 1 || ry > 1 ? 1 : 0;
-      var bounds = { left: Math.max(0, Math.floor(b.left * rx) - extra), top: Math.max(0, Math.floor(b.top * ry) - extra), right: Math.min(measurement.width, Math.ceil(b.right * rx) + extra), bottom: Math.min(measurement.height, Math.ceil(b.bottom * ry) + extra) };
-      bounds.left = Math.min(bounds.left, measurement.width - 1); bounds.top = Math.min(bounds.top, measurement.height - 1);
-      var result = await bridge('cropApply', Object.assign({}, bounds, { token: measurement.token, padding: options.padding }));
-      status(result.message, 'success'); setBtn(btn, 'done');
-    } catch (e) { status(e.message, 'error'); setBtn(btn, 'error'); }
-    finally { setBusy(false); if (temp) try { encoder.cleanup(temp); } catch (e) { status('Temporary PNGs remain at ' + temp + '. ' + e.message, 'error'); } }
-  }
-
-  /* ---------- Illustrator Bridge ---------- */
-  var bridgeLatestPath = '', bridgeStamp = 0, bridgeWatching = false;
-  function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
-  function bridgeLatestFile() {
-    if (bridgeLatestPath) return bridgeLatestPath;
-    if (!node || !path) return '';
-    var os = node('os'), roaming = (typeof process !== 'undefined' && process.env && process.env.APPDATA) || path.join(os.homedir(), 'AppData', 'Roaming');
-    bridgeLatestPath = path.join(roaming, 'SuperV-Bridge', 'latest.json');
-    return bridgeLatestPath;
-  }
-  function readBridgeLatest() {
-    var file = bridgeLatestFile();
-    if (!file || !fs) return null;
-    try {
-      var info = JSON.parse(fs.readFileSync(file, 'utf8'));
-      return info && typeof info.ok === 'boolean' && typeof info.stamp === 'number' ? info : null;
-    } catch (e) { return null; }
-  }
-  function bridgeOptions() { return { as: segValue('bridge-as'), shapes: checked('bridge-shapes'), crisp: checked('bridge-crisp'), into: checked('bridge-into') }; }
-  async function bridgeImport(filePath, btn) {
-    return run('bridgeImport', Object.assign({ path: filePath }, bridgeOptions()), btn);
-  }
-  async function bridgePull(btn) {
-    if (busy) return;
-    if (!isAE) { status('Illustrator Bridge runs inside After Effects.', 'error'); return; }
-    var before = (readBridgeLatest() || {}).stamp || 0, sent = await run('bridgePull', {}, btn);
-    if (!sent) return;
-    var info = null;
-    setBusy(true); setBtn(btn, 'working');
-    try {
-      status('Waiting for Illustrator to send the open document…', 'working');
-      for (var waited = 0; waited < 30000 && !info; waited += 400) {
-        await sleep(400);
-        var now = readBridgeLatest();
-        if (now && now.stamp !== before) info = now;
-      }
-      if (!info) throw new Error('Illustrator did not answer within 30 seconds. Check that it has a document open and is not showing a dialog, then try again.');
-      if (!info.ok) throw new Error(info.error || 'Illustrator could not send the document.');
-    } catch (e) { status(e.message, 'error'); setBtn(btn, 'error'); setBusy(false); return; }
-    setBusy(false);
-    bridgeStamp = info.stamp;
-    await bridgeImport(info.path, btn);
-  }
-  async function bridgeLast(btn) {
-    var info = readBridgeLatest();
-    if (!info) { status('Nothing has been pushed from Illustrator yet. Use Pull from Illustrator, or choose an .ai file.', 'error'); return; }
-    if (!info.ok) { status(info.error || 'The last push from Illustrator failed.', 'error'); return; }
-    bridgeStamp = info.stamp;
-    await bridgeImport(info.path, btn);
-  }
-  async function bridgeChoose(btn) {
-    var picked = await run('pickFile', { title: 'Choose an Illustrator file' });
-    if (picked && picked.path) await bridgeImport(picked.path, btn);
-  }
-  function bridgeWatch(on) {
-    if (!fs || !isAE) { if (on) { $('bridge-watch').checked = false; status('Automatic import works inside After Effects.', 'error'); } return; }
-    var file = bridgeLatestFile();
-    if (!on) { if (bridgeWatching) fs.unwatchFile(file); bridgeWatching = false; return; }
-    if (bridgeWatching) return;
-    bridgeStamp = (readBridgeLatest() || {}).stamp || bridgeStamp; // ignore whatever was pushed before watching started
-    fs.watchFile(file, { interval: 800 }, function () {
-      var info = readBridgeLatest();
-      if (!info || info.stamp === bridgeStamp) return;
-      if (busy) return; // pick it up on the next change
-      bridgeStamp = info.stamp;
-      if (!info.ok) { status(info.error || 'Illustrator could not send the document.', 'error'); return; }
-      bridgeImport(info.path, null);
-    });
-    bridgeWatching = true; status('Watching for pushes from Illustrator…', 'success');
+    await run('cropFast', { mode: 'fast', scope: 'all', range: 'comp', padding: 0 }, btn);
   }
 
   /* ---------- Start up ---------- */
@@ -496,16 +408,22 @@
   all('.tabs button').forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
   $('settings-toggle').onclick = function () { showTab($('settings').classList.contains('active') ? state.ui.tab : 'settings'); };
   $('settings-back').onclick = function () { showTab(state.ui.tab); };
-  all('.tile').forEach(function (t) { t.onclick = function () { openTool(t.closest('.tab').id, t.dataset.tool); }; });
+  all('.tile').forEach(function (t) {
+    t.onclick = async function () {
+      var act = t.dataset.oneclick;
+      if (!act) { openTool(t.closest('.tab').id, t.dataset.tool); return; }
+      if (act === 'crop') { await cropComp(t); return; }
+      var args; try { args = toolArgs(act); } catch (e) { status(e.message, 'error'); return; }
+      await run(act === 'null' ? 'nullTool' : act, args, t);
+    };
+  });
   all('.seg:not(#ease-dir):not(#ease-view), .chips:not(#text-cats):not(#ease-family)').forEach(function (s) { all('button', s).forEach(function (b) { b.onclick = function () { setSeg(s.id, b.dataset.value); if (s.id === 'text-direction') playPreview(); }; }); });
 
   all('[data-action]').forEach(function (b) {
     b.onclick = async function () {
       var action = b.dataset.action;
-      if (action === 'crop') { await cropComp(b); return; }
-      var args; try { args = toolArgs(action); } catch (e) { status(e.message, 'error'); setBtn(b, 'error'); return; }
+            var args; try { args = toolArgs(action); } catch (e) { status(e.message, 'error'); setBtn(b, 'error'); return; }
       var r = await run(action === 'null' ? 'nullTool' : action, args, b);
-      if (action === 'copyKeys' && r) $('clipboard-info').textContent = r.message;
     };
   });
   $('reconnect').onclick = async function () {
@@ -516,21 +434,11 @@
   ['counter-from', 'counter-to', 'counter-decimals', 'counter-prefix', 'counter-suffix', 'counter-separator', 'counter-first', 'counter-every'].forEach(function (id) { $(id).addEventListener('input', counterPreview); });
   ['text-duration', 'text-stagger', 'text-by'].forEach(function (id) { $(id).addEventListener('change', playPreview); });
   $('replay').onclick = playPreview;
-  $('gif-channels').addEventListener('change', updateDependents);
+  $('gif-preset').addEventListener('change', updateDependents);
   $('gif-format').addEventListener('change', updateDependents);
 
   $('export-gif').onclick = function () { exportGIF(this); };
-  $('bridge-pull').onclick = function () { bridgePull(this); };
-  $('bridge-latest').onclick = function () { bridgeLast(this); };
-  $('bridge-file').onclick = function () { bridgeChoose(this); };
-  $('bridge-watch').addEventListener('change', function () { bridgeWatch(this.checked); });
-  $('bridge-show-script').onclick = function (e) {
-    e.preventDefault();
-    var script = extensionRoot ? extensionRoot.replace(/\//g, '\\') + '\\bridge\\SuperV-Push-to-AE.jsx' : '';
-    if (node && script) node('child_process').execFile('explorer.exe', ['/select,', script], { windowsHide: true }, function () {}); else status('The Illustrator script is inside the SuperV install folder, in the bridge folder.', 'error');
-  };
   $('cancel-export').onclick = function () { cancelRender = true; if (exportJob) exportJob.cancel(); };
-  $('crop-cancel').onclick = function () { cancelRender = true; status('Cancelling after the current frames…', 'working'); };
   $('pick-video').onclick = async function () { var r = await run('pickFile', { title: 'Choose a video to convert' }); if (r && r.path) { videoPath = r.path; $('video-label').textContent = videoPath; } };
   $('pick-encoder').onclick = async function () { var r = await run('pickFile', { title: 'Choose ffmpeg.exe' }); if (r && r.path) { state.encoder = r.path; $('encoder-path').value = r.path; save(); ffmpegInfo = ''; refreshAbout(); } };
   $('encoder-path').onchange = function () { state.encoder = this.value.trim(); save(); };
@@ -546,12 +454,12 @@
   };
   $('reset-settings').onclick = function () { try { localStorage.removeItem('vk.gsd.settings.v1'); } catch (_) {} location.reload(); };
   all('input,select').forEach(function (el) {
-    if (!el.id || el.id === 'encoder-path' || el.id === 'bridge-watch') return;
+    if (!el.id || el.id === 'encoder-path') return;
     el.addEventListener('change', function () { state.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value; save(); });
   });
 
   showTab(state.ui.tab === 'text' ? 'text' : 'effects');
-  if (state.ui.effects) openTool('effects', state.ui.effects);
+  if (state.ui.effects && document.querySelector('#effects .opts[data-tool="' + state.ui.effects + '"]')) openTool('effects', state.ui.effects);
   if (state.ui.text) openTool('text', state.ui.text);
   window.__vkBooted = true;
 })();

@@ -87,14 +87,16 @@ function VKFeatures(h) {
         if(o.range==='comp'){start=0;end=c.duration;}
         else if(o.range==='current'){start=c.time;end=start+c.frameDuration;}
         else{start=c.workAreaStart;end=c.workAreaStart+c.workAreaDuration;}
-        var fps=crop?c.frameRate:h.num(o.fps,1,60);
+        var fps=crop?c.frameRate:(Number(o.fps)>0?h.num(o.fps,1,60):Math.min(c.frameRate,Number(o.maxFps)>0?Number(o.maxFps):60));
         var total=o.range==='current'?1:Math.max(1,Math.ceil((end-start)*fps-0.0001));
         if(total>18000)h.fail('The range exceeds 18,000 frames. Choose a shorter range.');
         var dir=new Folder(o.directory);
         if(!dir.exists && !dir.create())h.fail('Cannot create the temporary render folder.');
         var copy=null;
         try{
-            copy=c.duplicate();copy.name=c.name;copy.comment='VK TEMP RENDER — removed when this operation finishes';var factor=crop&&o.scale===2&&c.width>=64&&c.height>=64?2:1;copy.resolutionFactor=[factor,factor];
+            copy=c.duplicate();copy.name=c.name;copy.comment='VK TEMP RENDER — removed when this operation finishes';var factor=crop&&o.scale===2&&c.width>=64&&c.height>=64?2:1;
+            // GIF/WebM: render at the smallest resolution that still covers the output width (halves render time per step).
+            if(!crop&&o.reduce&&Number(o.targetWidth)>0){while(factor<4&&c.width/(factor*2)>=Number(o.targetWidth)&&c.height/(factor*2)>=16)factor*=2;}copy.resolutionFactor=[factor,factor];
             if(crop && o.scope==='selection'){
                 for(i=1;i<=copy.numLayers;i++){copy.layer(i).locked=false;copy.layer(i).solo=false;}
                 for(i=0;i<indices.length;i++)copy.layer(indices[i]).solo=true;

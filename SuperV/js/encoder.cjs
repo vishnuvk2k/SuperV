@@ -46,18 +46,29 @@ function buildWebmArgs(o) {
   args.push('-progress', 'pipe:1', '-f', 'webm', o.output);
   return args;
 }
+// Compress levels: fewer colours, a pattern dither that LZW packs well, only changed pixels stored, and a frame-rate ceiling.
+const GIF_COMPRESS = {
+  none: { colours: 256, dither: 'sierra2_4a', fps: 50, diff: false },
+  low: { colours: 128, dither: 'sierra2_4a', fps: 50, diff: true },
+  medium: { colours: 64, dither: 'bayer:bayer_scale=5', fps: 24, diff: true },
+  high: { colours: 32, dither: 'bayer:bayer_scale=4', fps: 15, diff: true },
+  insane: { colours: 16, dither: 'bayer:bayer_scale=3', fps: 10, diff: true },
+};
 function buildArgs(o) {
   if (o.format === 'webm') return buildWebmArgs(o);
   if (o.format !== undefined && o.format !== 'gif') throw new Error('Invalid export format.');
   const width = Math.round(number(o.width, 16, 4096, 'Width'));
-  const fps = number(o.fps, 1, 50, 'FPS');
-  const colours = number(o.colours, 4, 256, 'Colours');
+  const level = o.compress === undefined ? 'none' : o.compress;
+  if (!Object.prototype.hasOwnProperty.call(GIF_COMPRESS, level)) throw new Error('Invalid compression level.');
+  const squeeze = GIF_COMPRESS[level];
+  const sourceFps = number(o.fps, 1, 60, 'FPS');
+  const fps = Math.min(sourceFps, squeeze.fps, 50);
+  const colours = Math.min(number(o.colours, 4, 256, 'Colours'), squeeze.colours);
   const threshold = number(o.threshold, 0, 255, 'Alpha threshold');
   const loops = number(o.loop, -1, 65535, 'Loop count');
   if (!['rgb', 'rgba', 'alpha'].includes(o.channels)) throw new Error('Invalid channels.');
-  if (!['none', 'bayer', 'sierra2_4a'].includes(o.dither)) throw new Error('Invalid dithering.');
   const rgb = backgroundRgb(o);
-  const args = inputArgs(o, fps);
+  const args = inputArgs(o, sourceFps);
   let graph = '[0:v]fps=' + fps + ':round=up,scale=' + width + ':-1:flags=lanczos,setsar=1,format=rgba';
   if (o.channels === 'alpha') {
     graph += ',alphaextract[clean];';
@@ -66,7 +77,7 @@ function buildArgs(o) {
   } else {
     graph += '[clean];';
   }
-  graph += '[clean]split[palin][pixels];[palin]palettegen=max_colors=' + colours + ':reserve_transparent=' + (o.channels === 'rgba' ? '1' : '0') + '[palette];[pixels][palette]paletteuse=dither=' + o.dither + ':alpha_threshold=' + threshold + '[gif]';
+  graph += '[clean]split[palin][pixels];[palin]palettegen=max_colors=' + colours + (squeeze.diff ? ':stats_mode=diff' : '') + ':reserve_transparent=' + (o.channels === 'rgba' ? '1' : '0') + '[palette];[pixels][palette]paletteuse=dither=' + squeeze.dither + (squeeze.diff ? ':diff_mode=rectangle' : '') + ':alpha_threshold=' + threshold + '[gif]';
   args.push('-filter_complex', graph, '-map', '[gif]', '-an', '-loop', String(loops), '-progress', 'pipe:1', '-f', 'gif', o.output);
   return args;
 }
