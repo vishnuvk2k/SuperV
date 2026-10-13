@@ -1,9 +1,0 @@
-True Comp Duplicator.jsx is the original script supplied by the user for
-integration into this personal After Effects panel. Its source is unchanged.
-
-Original author: Brennan Chapman, copyright 2010.
-Enhancements: Brennan Chapman and Lloyd Alvarez.
-See the script header for its complete credits and version history.
-
-The SuperV button opens this script's own interface.
-The integration does not claim authorship of True Comp Duplicator.

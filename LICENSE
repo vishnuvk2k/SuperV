@@ -13,10 +13,8 @@ You may not, without written permission from the copyright holder:
 SuperV is provided "as is", without warranty of any kind. The author is not
 liable for any loss or damage arising from its use.
 
-Third-party components keep their own licences and copyright:
+Third-party component:
   - SuperV/bin/ (FFmpeg): GNU GPL v3, see SuperV/bin/LICENSE and
     SuperV/bin/ENCODER-SOURCE.txt. FFmpeg is not covered by the terms above.
-  - SuperV/vendor/ (True Comp Duplicator): Brennan Chapman and Lloyd Alvarez,
-    see SuperV/vendor/NOTICE.txt. Not covered by the terms above.
 Adobe and After Effects are trademarks of Adobe Inc. SuperV is not affiliated
 with or endorsed by Adobe.

@@ -229,11 +229,48 @@ function VKFeatures(h) {
         if(notes.length)result.message+='\n'+notes.join('\n');
         return result;
     }
-    function duplicateExternal() {
-        var f=new File(moduleRoot.fsName+'/vendor/True Comp Duplicator.jsx');
-        if(!f.exists)h.fail('True Comp Duplicator.jsx is missing. Reinstall the complete package.');
-        $.evalFile(f);
-        return {message:'True Comp Duplicator opened. Select compositions in the Project panel and use its DUPLICATE button.'};
+    // SuperV's own true duplicator: copies the selected comps and every comp nested inside them, once each,
+    // and points the copies at each other so nothing in the new tree still depends on the original tree.
+    function duplicateComps(o) {
+        var roots=[],sel=app.project.selection,i,j,it;
+        for(i=0;i<sel.length;i++)if(sel[i] instanceof CompItem)roots.push(sel[i]);
+        if(!roots.length&&app.project.activeItem instanceof CompItem)roots.push(app.project.activeItem);
+        if(!roots.length)h.fail('Select one or more comps in the Project panel, or open a comp, then press Duplicate.');
+        var copies=Math.max(1,Math.min(Math.floor(Number(o&&o.copies)||1),50));
+        var order=[],seen={};
+        function visit(c){
+            if(seen[c.id])return;seen[c.id]=true;
+            for(var k=1;k<=c.numLayers;k++){var s=c.layer(k).source;if(s instanceof CompItem)visit(s);}
+            order.push(c);
+        }
+        for(i=0;i<roots.length;i++)visit(roots[i]);
+        if(order.length>500)h.fail('That comp tree has more than 500 comps. Select a smaller tree.');
+        var rootIds={},made=[];
+        for(i=0;i<roots.length;i++)rootIds[roots[i].id]=true;
+        var folder=app.project.items.addFolder('Duplicates'),newRoots=[],total=0;
+        for(var n=0;n<copies;n++){
+            var map={},created=[];
+            for(i=0;i<order.length;i++){
+                var src=order[i],d=src.duplicate();
+                d.name=src.name;d.parentFolder=folder;map[src.id]=d;created.push(d);
+                if(rootIds[src.id])newRoots.push(d);
+            }
+            for(i=0;i<created.length;i++){
+                var cc=created[i];
+                for(j=1;j<=cc.numLayers;j++){
+                    var ly=cc.layer(j),ls=ly.source;
+                    if(ls instanceof CompItem&&map[ls.id]){
+                        var wasLocked=ly.locked;if(wasLocked)ly.locked=false;
+                        ly.replaceSource(map[ls.id],false);
+                        if(wasLocked)ly.locked=true;
+                    }
+                }
+            }
+            total+=created.length;
+        }
+        for(i=1;i<=app.project.numItems;i++)app.project.item(i).selected=false;
+        for(i=0;i<newRoots.length;i++)newRoots[i].selected=true;
+        return {message:'Duplicated '+roots.length+' comp'+(roots.length===1?'':'s')+(order.length>roots.length?' and '+(order.length-roots.length)+' nested comp'+(order.length-roots.length===1?'':'s'):'')+(copies>1?' × '+copies:'')+' into the "Duplicates" folder ('+total+' new comps).'};
     }
-    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,duplicateExternal:duplicateExternal};
+    return {wiggle:wiggle,renderBegin:renderBegin,renderFrame:renderFrame,renderFinish:renderFinish,cropApply:cropApply,cropFast:cropFast,duplicateComps:duplicateComps};
 }

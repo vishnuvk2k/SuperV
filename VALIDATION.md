@@ -38,4 +38,4 @@ Earlier versions had native checks on AE 26.3x87 for original host tools and CEP
 
 Video-inspired presets are recreated motions. Check outline presets with your own fonts and existing styling. Crop/GIF limitations are described in README.md. The supplied duplicator's full option matrix has not been retested.
 
-Development test scripts and personal recordings are excluded from the ZIP. Component licences remain in SuperV/bin and SuperV/vendor.
+Development test scripts and personal recordings are excluded from the ZIP. Component licences remain in SuperV/bin.

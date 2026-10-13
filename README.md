@@ -1,6 +1,6 @@
 # SuperV 1.4.0
 
-After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied True Comp Duplicator and FFmpeg.
+After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, the supplied and FFmpeg.
 
 ## Install or update
 
@@ -25,7 +25,7 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 
 - **WebM export.** The GIF tile is now **GIF / WebM**. A Format menu switches between an animated GIF and a VP9 WebM video. WebM keeps real, soft-edged transparency (RGB + alpha), and has a Quality menu (High, Balanced, Small) and up to 60 fps. Works with a comp or a video file.
 - **SmartResize.** The Comp size tile's *Resize current* mode is now **SmartResize**. Choose how everything follows the new frame: scale to fit, scale to fill, spread out (move layers, keep their size), keep centred, or change the size only. Keyframes, spatial motion paths, separated X/Y/Z, cameras (zoom and focus distance) and lights are all carried across, layers inside a parent follow their parent, and expression-driven layers are skipped and counted. Full-frame solids and adjustment layers are refitted to the new size. *Resize a copy* (on by default) leaves your original comp untouched. A **Custom** size takes any width and height.
-- **One-click tiles.** Null (parents the selection, centred, 2D), Crop (fast, all visible layers, full animation, no padding), Organize and Duplicate (opens True Comp Duplicator) run as soon as you click them. The Illustrator and Keyframes tiles were removed.
+- **One-click tiles.** Null (parents the selection, centred, 2D), Crop (fast, all visible layers, full animation, no padding), Organize and Duplicate (duplicates comps with their nested comps) run as soon as you click them. The Illustrator and Keyframes tiles were removed.
 - **GIF options.** Render preset (Alpha Only, High Quality, High Quality with Alpha, Lossless, Lossless with Alpha), Framerate (As comp by default), Max colors and Compress (None to Insane) for smaller files; non-lossless presets render at the output size to save time.
 - **Blank-panel fixes.** The installer warns when run as Administrator, clears the "downloaded from the internet" mark from every file, sets the unsigned-extension flag for CSXS 11 to 13, and verifies files and flags before it reports success. New **scripts\Check-SuperV.ps1** diagnoses and repairs a broken install. The panel shows a visible error if it cannot start.
 
@@ -99,7 +99,7 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 
 - **Null:** Comp centre or unparented 2D selection centre, with optional parenting.
 - **Crop Comp:** Removes transparent borders, with padding. **Fast** (default) measures each visible layer's box over the range in about a second, without rendering. Effects that draw outside a layer (glow, shadow) and precomp/alpha-footage content are measured by their box, so the panel warns you to add padding or use Exact. **Exact** renders frames at half size in batches and reads real pixels; it can be cancelled. An opaque full-comp background prevents cropping. Supports 2D comps; precompose 3D artwork first. Duration and key times stay unchanged. Coordinate-dependent expressions and certain parent expressions require baking/precomposing.
-- **True Comp Duplicator:** Opens your supplied v3.9.14 script. Select project comps and use its original controls. Its code and credits are retained.
+- **Duplicate:** one click copies the comps you selected in the Project panel (or the open comp) together with every comp nested inside, once each, and points the copies at each other. Copies keep the original names and go into a **Duplicates** folder. Footage and solids are shared, not copied. Inspired by True Comp Duplicator; SuperV contains none of its code.
 - **Copy/Paste Keys:** Select keyframe diamonds on one source layer. Copies values, timing, easing and supported spatial data. Matching target properties/effects must exist. Matching-time keys are replaced. Optional expressions are copied verbatim. Clipboard lasts until the AE host reloads.
 - **Loop:** IN/OUT/both and cycle, ping-pong, offset or continue. Select numeric properties with at least two keys. Zero intervals uses all keys.
 - **Wiggle:** Only speed and amount. Applies to Position, including separated dimensions. Reapplying reuses the editable sliders. Non-panel expressions are protected unless replacement is enabled.
@@ -110,7 +110,7 @@ All PNG footage goes directly into PNG; JPG/JPEG share JPG. Sequences use their 
 
 Done by VisHnu VK, GPT-6 Astra and Claude
 
-The minimal About section is at the bottom of Settings. Third-party components: True Comp Duplicator and FFmpeg. Other reference plugins and personal recordings are not bundled.
+The minimal About section is at the bottom of Settings. Third-party component: FFmpeg. Other reference plugins and personal recordings are not bundled.
 
 To uninstall, close AE and double-click **UNINSTALL.cmd**. It moves the installed folder to `%APPDATA%\SuperV-Backups`; projects and media are not deleted. To restore saved registry values too, run `scripts/Uninstall.ps1 -RestoreDebugSettings` in PowerShell before a normal uninstall.
 
@@ -128,4 +128,4 @@ Installing over an existing SuperV keeps the encoder you already had, and an ins
 
 ---
 
-Copyright (c) 2026 Vishnu VK. All rights reserved. Free to use for testing and personal work; see [LICENSE](LICENSE). FFmpeg and True Comp Duplicator keep their own licences.
+Copyright (c) 2026 Vishnu VK. All rights reserved. Free to use for testing and personal work; see [LICENSE](LICENSE). FFmpeg keeps its own licence.
