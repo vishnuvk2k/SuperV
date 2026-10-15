@@ -14,7 +14,7 @@ if ($EncoderPath) {
     $downloadRoot = Join-Path $env:TEMP ('vk-ffmpeg-download-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $downloadRoot | Out-Null
     $archivePath = Join-Path $downloadRoot 'ffmpeg.zip'
-    Write-Output "Downloading FFmpeg from $encoderUrl (approximately 100 MB)…"
+    Write-Output "Downloading FFmpeg from $encoderUrl (approximately 100 MB)..."
     Invoke-WebRequest -Uri $encoderUrl -OutFile $archivePath -UseBasicParsing
     Expand-Archive -LiteralPath $archivePath -DestinationPath (Join-Path $downloadRoot 'expanded')
     $encoderFile = Get-ChildItem -LiteralPath (Join-Path $downloadRoot 'expanded') -Filter 'ffmpeg.exe' -Recurse -File | Select-Object -First 1

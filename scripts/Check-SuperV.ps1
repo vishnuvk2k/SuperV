@@ -33,7 +33,7 @@ if ($isAdmin) {
     Write-Bad "This script (and, more importantly, the installer if you ran it the same way) is running as Administrator. If INSTALL.cmd was ever run as Administrator on this PC, the registry flag below gets written to the ADMIN account's profile, not the one that opens After Effects, which produces exactly a blank panel."
     Write-Info 'Re-run INSTALL.cmd by double-clicking it normally (no "Run as administrator") once you have closed this.'
 } else {
-    Write-Ok 'Not running elevated. Good — run INSTALL.cmd the same way (plain double-click).'
+    Write-Ok 'Not running elevated. Good - run INSTALL.cmd the same way (plain double-click).'
 }
 
 # 2. Extension folder present and complete for THIS user
@@ -45,13 +45,13 @@ if (Test-Path -LiteralPath $extRoot) {
     foreach ($rel in $required) {
         $p = Join-Path $extRoot $rel
         if (Test-Path -LiteralPath $p) { Write-Ok "  $rel present" }
-        else { Write-Bad "  $rel is MISSING — install may be incomplete or extracted from a partial ZIP" }
+        else { Write-Bad "  $rel is MISSING - install may be incomplete or extracted from a partial ZIP" }
     }
 } else {
-    Write-Bad "Not found at $extRoot — SuperV was never installed for THIS Windows user ($env:USERNAME). If the installer was run under a different login (or elevated, landing in the Administrator profile), this is expected and is the root cause."
+    Write-Bad "Not found at $extRoot - SuperV was never installed for THIS Windows user ($env:USERNAME). If the installer was run under a different login (or elevated, landing in the Administrator profile), this is expected and is the root cause."
 }
 
-# 3. PlayerDebugMode registry flag — the actual gate CEP checks
+# 3. PlayerDebugMode registry flag - the actual gate CEP checks
 Write-Section 'PlayerDebugMode registry flag (HKCU, this user)'
 foreach ($cepVersion in @('11', '12')) {
     $regPath = "HKCU:\Software\Adobe\CSXS.$cepVersion"
@@ -85,7 +85,7 @@ try {
             foreach ($p in @($p11, $p12)) {
                 if (Test-Path $p) {
                     $v = (Get-ItemProperty -LiteralPath $p -Name PlayerDebugMode -ErrorAction SilentlyContinue).PlayerDebugMode
-                    if ($v -eq '1') { Write-Info "  Flag IS set under another loaded profile ($($hive.PSChildName)) at $p — if that's not the account that runs AE, re-run the installer logged in as the right user."; $found = $true }
+                    if ($v -eq '1') { Write-Info "  Flag IS set under another loaded profile ($($hive.PSChildName)) at $p - if that's not the account that runs AE, re-run the installer logged in as the right user."; $found = $true }
                 }
             }
             if (-not $found) { Write-Info "  Checked profile $($hive.PSChildName): flag not set there either" }
@@ -116,19 +116,19 @@ if (Test-Path -LiteralPath $extRoot) {
         Write-Ok 'No blocked files found under the installed extension folder.'
     }
 } else {
-    Write-Info '  Skipped — extension folder not present for this user (see above).'
+    Write-Info '  Skipped - extension folder not present for this user (see above).'
 }
 
-# 6. After Effects version sanity check against the manifest's supported range (25.0–27.0)
+# 6. After Effects version sanity check against the manifest's supported range (25.0-27.0)
 Write-Section 'After Effects version'
 try {
     $aeKeys = Get-ChildItem 'HKLM:\SOFTWARE\Adobe\After Effects' -ErrorAction SilentlyContinue
     if ($aeKeys) {
         $versions = $aeKeys | ForEach-Object { $_.PSChildName } | Where-Object { $_ -match '^\d+\.\d+$' }
-        if ($versions) { Write-Info ("  Installed AE version key(s) found: " + ($versions -join ', ') + " (SuperV supports 25.0–26.x)") }
-        else { Write-Info '  Could not read a version number from the registry (not fatal — just informational).' }
+        if ($versions) { Write-Info ("  Installed AE version key(s) found: " + ($versions -join ', ') + " (SuperV supports 25.0-26.x)") }
+        else { Write-Info '  Could not read a version number from the registry (not fatal - just informational).' }
     } else {
-        Write-Info '  Could not find After Effects registry keys (not fatal — just informational).'
+        Write-Info '  Could not find After Effects registry keys (not fatal - just informational).'
     }
 } catch { Write-Info '  Version check skipped (non-fatal).' }
 
