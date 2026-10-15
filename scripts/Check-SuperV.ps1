@@ -53,7 +53,7 @@ if (Test-Path -LiteralPath $extRoot) {
 
 # 3. PlayerDebugMode registry flag - the actual gate CEP checks
 Write-Section 'PlayerDebugMode registry flag (HKCU, this user)'
-foreach ($cepVersion in @('11', '12')) {
+foreach ($cepVersion in @('11', '12', '13')) {
     $regPath = "HKCU:\Software\Adobe\CSXS.$cepVersion"
     $val = $null
     try { $val = (Get-ItemProperty -LiteralPath $regPath -Name PlayerDebugMode -ErrorAction Stop).PlayerDebugMode } catch {}
