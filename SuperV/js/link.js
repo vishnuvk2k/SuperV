@@ -54,7 +54,12 @@
     if (!it || typeof window.VKLinkBridge !== 'function') return;
     importing = true; it.state = 'working'; it.error = ''; render();
     var file = path.join(base, 'transfers', id, it.m.file);
-    window.VKLinkBridge('linkImport', { file: file, kind: it.m.kind, title: it.m.title, mode: $('link-mode').value })
+    var job;
+    if (it.m.kind === 'vector') {
+      var data; try { data = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); } catch (e) { it.state = 'error'; it.error = 'Could not read the sent data: ' + e.message; importing = false; render(); return pump(); }
+      job = window.VKLinkBridge('linkVector', { data: data, title: it.m.title, mode: $('link-mode').value });
+    } else job = window.VKLinkBridge('linkImport', { file: file, kind: it.m.kind, title: it.m.title, mode: $('link-mode').value });
+    job
       .then(function (r) {
         it.state = 'done';
         try { fs.writeFileSync(path.join(base, 'transfers', id, 'imported.json'), JSON.stringify({ time: Date.now() })); } catch (_) {}
