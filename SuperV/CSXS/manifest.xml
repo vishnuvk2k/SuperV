@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.vk.getshitdone" ExtensionBundleVersion="1.4.0" ExtensionBundleName="SuperV">
-  <ExtensionList><Extension Id="com.vk.getshitdone.panel" Version="1.4.0"/><Extension Id="com.vk.getshitdone.send" Version="1.4.0"/></ExtensionList>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.vk.getshitdone" ExtensionBundleVersion="1.4.1" ExtensionBundleName="SuperV">
+  <ExtensionList><Extension Id="com.vk.getshitdone.panel" Version="1.4.1"/><Extension Id="com.vk.getshitdone.send" Version="1.4.1"/></ExtensionList>
   <ExecutionEnvironment>
     <HostList><Host Name="AEFT" Version="[25.0,27.0)"/><Host Name="ILST" Version="[26.0,99.9]"/><Host Name="PHXS" Version="[24.0,99.9]"/></HostList>
     <LocaleList><Locale Code="All"/></LocaleList>

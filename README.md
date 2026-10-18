@@ -1,4 +1,4 @@
-# SuperV 1.4.0
+# SuperV 1.4.1
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, and the FFmpeg encoder.
 
@@ -20,6 +20,14 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 1. Close After Effects and double-click **INSTALL.cmd** normally (not "Run as administrator"). The installer now warns if it is elevated and checks its own work before it says it is finished.
 2. Still blank? Run **scripts\Check-SuperV.ps1** (right-click, Run with PowerShell). It reports the user, the files, both registry flags and any "blocked" files. Add `-Fix` to repair the registry flag and unblock the files.
 3. If a script fails to load or crashes while starting, the panel now shows a red message at the top instead of staying empty.
+
+## New in 1.4.1
+
+- **Send from Illustrator and Photoshop (Link).** Select artwork in Illustrator or Photoshop, press **Send** in the SuperV Send panel, and native After Effects layers appear in the comp you already have open, at the same position and size as in the source file. Illustrator shapes become shape layers (fills, strokes, caps and joins), text stays live text with its font, size, colour and alignment, and Photoshop pixel layers arrive as images. Names, opacity and blend modes carry over. No saving, importing, new comp or precomp. Gradients arrive as an approximate solid colour.
+- **Simpler Link tab.** Auto import is always on and the tab shows just the connected apps and the last result.
+- **Organize no longer freezes large projects.** Folder lookups are cached and renames are skipped, so projects with thousands of items finish instead of showing Not Responding.
+- **Decomp fixed.** Unpacking a precomp that contains parented layers or layers with linked expressions no longer fails with "Can't copy a layer with a parent or with a linked expression, while an Undo Group is open". Those layers may need an extra Ctrl+Z to undo.
+- **Crop also resizes precomps.** When you crop a comp, a precomp inside it that is the same size is cropped by the same area so it stays lined up. Precomps that are scaled, rotated, animated, parented or used in other comps are left alone and listed in the result.
 
 ## New in 1.4.0
 

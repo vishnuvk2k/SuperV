@@ -34,6 +34,10 @@ Everything below is in 1.3.0 except the update check.
 - Compact tiles: 62 px high, five per row in wide panels.
 - **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
 
+## Built in 1.4.1
+
+- Illustrator and Photoshop send as native layers (Link), Organize freeze fix, Decomp undo-group fix, Crop resizes same-size precomps.
+
 ## Built in 1.4.0
 - **SmartResize** (Comp size tile), **WebM export** (GIF / WebM tile) and the blank-panel fixes. See the README.
 - Next: send selected Illustrator and Photoshop artwork to After Effects from a small panel inside each app.

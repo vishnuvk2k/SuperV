@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var VERSION = '1.4.0';
+  var VERSION = '1.4.1';
   var $ = function (id) { return document.getElementById(id); };
   var all = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var cep = window.__adobe_cep__, isAE = !!cep, node = window.cep_node && window.cep_node.require ? window.cep_node.require : (typeof require === 'function' ? require : null);
