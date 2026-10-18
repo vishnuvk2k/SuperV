@@ -193,21 +193,43 @@ input[type=range]{width:100%;height:20px;padding:0;background:none;border:0;acce
 .link-last{font-size:12px;color:var(--faint)}.link-last.ok{color:var(--ok)}.link-last.err{color:var(--err)}
 
 
-/* SuperV 1.4.1 look: same blue, flat background, rounder tiles, favorites row, light motion. No glow. */
-.tabs button{border-radius:10px;transition:color .2s,border-color .2s,background .2s}
-.tile{position:relative;border-radius:12px;transition:transform .16s ease,border-color .16s,background .16s}
-.tile:hover{transform:translateY(-2px)}
-.tile.active{box-shadow:0 0 0 1px var(--blue)}
-.drawer{border-radius:14px}
+/* SuperV 1.4.1 look: icon-led tool grid, underline tabs, category filter, search, favorites. One blue, no glow. */
+header{padding:12px 14px 6px}
+header .hbtn{display:flex;gap:6px;align-items:center}
+.icon-button{background:var(--surface);border-radius:8px;padding:6px}
+.tabs{display:flex;gap:22px;padding:6px 14px 0;border-bottom:1px solid var(--line-soft)}
+.tabs button{border:0;background:none;border-radius:0;padding:6px 2px 10px;font-size:13px;font-weight:700;color:var(--faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+.tabs button:hover{color:var(--text);border-color:transparent;background:none}
+.tabs button.active{background:none;border-color:transparent;border-bottom-color:var(--blue);color:#fff}
+.tabs.dimmed button.active{background:none;border-color:transparent;color:var(--faint)}
+main{padding-top:12px}
+.cats{display:flex;gap:16px;padding:0 0 10px;overflow-x:auto}
+.cats button{background:none;border:0;border-bottom:2px solid transparent;padding:0 2px 7px;font-size:12px;font-weight:600;color:var(--faint);cursor:pointer;white-space:nowrap}
+.cats button:hover{color:var(--text)}
+.cats button.on{color:#fff;border-bottom-color:var(--blue)}
+#tool-search{display:none;margin:0 0 10px}
+#tool-search.open{display:block}
+.tiles{gap:8px}
+.tile{position:relative;height:68px;gap:7px;border-radius:12px;background:linear-gradient(180deg,#2c2c31,#232327);border:1px solid #37373d;box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);transition:transform .14s ease,border-color .14s}
+.tile:hover{background:linear-gradient(180deg,#313137,#27272b);border-color:#4a4a52;transform:translateY(-1px)}
+.tile span{font-size:11px;font-weight:600;color:#c9c9d0}
+.tile svg{width:22px;height:22px;stroke-width:1.7;color:#d8d8de}
+.tile svg *:not(:first-child){stroke:var(--blue)}
+.tile.active{background:linear-gradient(180deg,#1b8fff,#0b6fe0);border-color:#3aa0ff;box-shadow:0 6px 14px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.28)}
+.tile.active span,.tile.active svg{color:#fff}
+.tile.active svg *{stroke:#fff}
+.tile[hidden]{display:none}
+.drawer{margin-top:12px;border-radius:14px;background:#232327;border-color:#303036}
 .primary,.secondary{border-radius:10px}
-.primary{transition:transform .12s,background .15s}
+.primary{box-shadow:inset 0 1px 0 rgba(255,255,255,.25);transition:transform .12s,background .15s}
 .primary:active{transform:scale(.985)}
 .tile .star{position:absolute;top:3px;right:4px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:var(--faint);opacity:0;transition:opacity .15s;cursor:pointer}
 .tile:hover .star,.tile .star:focus-visible,.tile .star.on{opacity:1}
-.tile .star svg{width:11px;height:11px}
+.tile .star svg{width:11px;height:11px;stroke:currentColor !important}
+.tile .star svg *{stroke:currentColor !important}
 .tile .star.on{color:#ffc94d}.tile .star.on svg{fill:#ffc94d}
 .tile .star:hover{color:#ffc94d}
-#favs{padding:0 14px 10px;flex-shrink:0}
+#favs{padding:10px 14px 0;flex-shrink:0}
 #favs[hidden]{display:none}
 .fav-title{font-size:10px;letter-spacing:1.3px;color:var(--faint);font-weight:600;margin-bottom:6px}
 .fav-list{display:flex;flex-wrap:wrap;gap:6px}
