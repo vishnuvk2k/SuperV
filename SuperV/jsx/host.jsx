@@ -32,34 +32,50 @@ $.global.__VK_GSD_HOST__ = (function () {
     function captureKey(p,k){var r={time:p.keyTime(k),value:p.keyValue(k),inType:p.keyInInterpolationType(k),outType:p.keyOutInterpolationType(k)};try{r.inEase=p.keyInTemporalEase(k);r.outEase=p.keyOutTemporalEase(k);r.auto=p.keyTemporalAutoBezier(k);r.cont=p.keyTemporalContinuous(k);}catch(ignore){}if(p.isSpatial){r.inTan=p.keyInSpatialTangent(k);r.outTan=p.keyOutSpatialTangent(k);r.sAuto=p.keySpatialAutoBezier(k);r.sCont=p.keySpatialContinuous(k);r.roving=p.keyRoving(k);}try{r.label=p.keyLabel(k);}catch(ignore2){}return r;}
     function copyKeys(o){var c=comp(),ps=props(c),items=[],min=Infinity,count=0,source=null;for(var i=0;i<ps.length;i++){var p=ps[i],ks=p.selectedKeys;if(!ks.length)continue;if(p.propertyValueType===PropertyValueType.NO_VALUE||p.propertyValueType===PropertyValueType.CUSTOM_VALUE)fail('Custom / no-value properties cannot be copied.');var own=owner(p);if(source&&source!==own)fail('Copy from one source layer at a time. Multiple properties on that layer are supported.');source=own;var record={path:pathOf(p),type:p.propertyValueType,name:p.name,keys:[],expression:o.expressions&&p.canSetExpression?p.expression:null,expressionEnabled:p.expressionEnabled};for(var j=0;j<ks.length;j++){var r=captureKey(p,ks[j]);min=Math.min(min,r.time);record.keys.push(r);count++;}items.push(record);}if(!items.length)fail('Select keyframes, not only property names.');clipboard={items:items,start:min,count:count};return {message:'Copied '+count+' keys across '+items.length+' properties. Clipboard lasts until AE closes.',count:count};}
     function pasteKeys(o){if(!clipboard)fail('Copy keyframes first.');var c=comp(),ls=layers(c),ps=props(c),jobs=[],i,j;editable(ls);if(clipboard.items.length===1&&ps.length){for(i=0;i<ps.length;i++)jobs.push({p:ps[i],item:clipboard.items[0]});}else{for(i=0;i<ls.length;i++)for(j=0;j<clipboard.items.length;j++){var item=clipboard.items[j],p=resolve(ls[i],item.path);if(!p)fail('Target '+ls[i].name+' is missing '+item.name+'. Add matching effects/properties first.');jobs.push({p:p,item:item});}}for(i=0;i<jobs.length;i++)if(!jobs[i].p.canVaryOverTime||jobs[i].p.propertyValueType!==jobs[i].item.type)fail('Source and target property types must match.');var shift=o.offset==='original'?0:c.time-clipboard.start,done=0;for(i=0;i<jobs.length;i++){var job=jobs[i],targetP=job.p,rs=job.item.keys,indices=[];for(j=0;j<rs.length;j++){targetP.setValueAtTime(rs[j].time+shift,rs[j].value);indices.push(targetP.nearestKeyIndex(rs[j].time+shift));}for(j=0;j<rs.length;j++){var r=rs[j],k=indices[j];targetP.setInterpolationTypeAtKey(k,r.inType,r.outType);if(r.inEase&&r.inType!==KeyframeInterpolationType.HOLD&&r.outType!==KeyframeInterpolationType.HOLD){targetP.setTemporalEaseAtKey(k,r.inEase,r.outEase);if(r.inType===KeyframeInterpolationType.BEZIER&&r.outType===KeyframeInterpolationType.BEZIER){targetP.setTemporalContinuousAtKey(k,r.cont);targetP.setTemporalAutoBezierAtKey(k,r.auto);}}if(r.inTan){targetP.setSpatialTangentsAtKey(k,r.inTan,r.outTan);targetP.setSpatialContinuousAtKey(k,r.sCont);targetP.setSpatialAutoBezierAtKey(k,r.sAuto);if(k>1&&k<targetP.numKeys)targetP.setRovingAtKey(k,r.roving);}if(r.label!==undefined)try{targetP.setLabelAtKey(k,r.label);}catch(ignore){}targetP.setSelectedAtKey(k,true);done++;}if(o.expressions&&job.item.expression!==null&&targetP.canSetExpression){targetP.expression=job.item.expression;if(job.item.expression)targetP.expressionEnabled=job.item.expressionEnabled;}}return {message:'Pasted '+done+' keys. Keys at matching times were replaced.'};}
-    function folder(parent,name){
-        for(var i=1;i<=parent.numItems;i++){
-            var candidate=parent.item(i);
+    // Finds or creates a child folder. Results are cached per run: scanning and renaming for every item froze AE on big projects.
+    function folder(parent,name,cache){
+        var key=parent.id+'/'+name.toUpperCase(),hit=cache[key],i,candidate;
+        if(hit)return hit;
+        for(i=1;i<=parent.numItems;i++){
+            candidate=parent.item(i);
             if(candidate instanceof FolderItem&&candidate.name.toUpperCase()===name.toUpperCase()){
-                candidate.name=name;return candidate;
+                if(candidate.name!==name)candidate.name=name;
+                cache[key]=candidate;return candidate;
             }
         }
-        var created=app.project.items.addFolder(name);created.parentFolder=parent;return created;
+        candidate=app.project.items.addFolder(name);candidate.parentFolder=parent;cache[key]=candidate;return candidate;
     }
     function organize(){
-        var project=app.project,root=project.rootFolder,items=[],folders=[],used={},i,j;
+        var project=app.project,root=project.rootFolder,items=[],folders=[],used={},cache={},i,j,n=project.numItems;
         var name=project.file?decodeURI(project.file.name).replace(/\.[^.]+$/,''):'UNTITLED';
-        for(i=1;i<=project.numItems;i++)items.push(project.item(i));
+        for(i=1;i<=n;i++)items.push(project.item(i));
+        // Which comps are used as precomps: one pass over the layers of every comp.
         for(i=0;i<items.length;i++)if(items[i] instanceof CompItem){
-            for(j=1;j<=items[i].numLayers;j++){var source=items[i].layer(j).source;if(source instanceof CompItem)used[source.id]=true;}
+            var cc=items[i],count2=cc.numLayers;
+            for(j=1;j<=count2;j++){
+                var src=null;
+                try{src=cc.layer(j).source;}catch(ignoreSource){}
+                if(src instanceof CompItem)used[src.id]=true;
+            }
         }
-        var base=folder(root,name),moved=0,count=0;
+        var base=folder(root,name,cache),moved=0,count=0,baseId=base.id;
         for(i=0;i<items.length;i++){
             var item=items[i],target=null;
-            if(item instanceof FolderItem){var depth=0,p=item.parentFolder;while(p&&p!==root){depth++;p=p.parentFolder;}if(item!==base)folders.push({item:item,depth:depth});continue;}
-            if(item instanceof CompItem){target=folder(base,'COMPS');if(used[item.id])target=folder(target,'PRECOMPS');}
+            if(item instanceof FolderItem){
+                if(item.id===baseId)continue;
+                var depth=0,p=item.parentFolder;while(p&&p!==root){depth++;p=p.parentFolder;}
+                folders.push({item:item,depth:depth});continue;
+            }
+            if(item instanceof CompItem){target=folder(base,'COMPS',cache);if(used[item.id])target=folder(target,'PRECOMPS',cache);}
             else if(item instanceof FootageItem){
                 var group='OTHER';
-                if(item.mainSource instanceof SolidSource)group='SOLIDS';
-                else if(item.file){var match=/\.([^.]+)$/.exec(item.file.name);if(match)group=match[1].toUpperCase();if(group==='JPEG')group='JPG';}
-                target=folder(base,group);
+                try{
+                    if(item.mainSource instanceof SolidSource)group='SOLIDS';
+                    else if(item.file){var match=/\.([^.]+)$/.exec(item.file.name);if(match)group=match[1].toUpperCase();if(group==='JPEG')group='JPG';}
+                }catch(ignoreFile){}
+                target=folder(base,group,cache);
             }
-            if(target){if(item.parentFolder!==target){item.parentFolder=target;moved++;}count++;}
+            if(target){if(item.parentFolder.id!==target.id){item.parentFolder=target;moved++;}count++;}
         }
         folders.sort(function(a,b){return b.depth-a.depth;});var removed=0;
         for(i=0;i<folders.length;i++)if(folders[i].item.numItems===0){folders[i].item.remove();removed++;}
