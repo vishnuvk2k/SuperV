@@ -158,42 +158,13 @@ function VKFeatures(h) {
         x=Math.min(x,c.width-w);y=Math.min(y,c.height-height);
         var jobs=cropPreflight(c),i;
         if(w===c.width && height===c.height)return {message:'No empty border to crop. The artwork already fills the composition.',width:w,height:height};
-        var changes=[],nested=sameSizePrecomps(c),oldW=c.width,oldH=c.height;
+        var changes=[];
         for(i=0;i<jobs.positions.length;i++)changes.push(prepareShift(jobs.positions[i],x,y));
         for(i=0;i<jobs.anchors.length;i++)changes.push(prepareShift(jobs.anchors[i],x,y));
         c.width=w;c.height=height;
         // AE can adjust default source anchors during resize. Restore the exact planned values afterwards.
         for(i=0;i<changes.length;i++)applyShift(changes[i]);
-        var msg='Cropped to '+w+' × '+height+' px. Duration and keyframe times are unchanged.',done=[],failed=[];
-        for(i=0;i<nested.length;i++){
-            try{applyCrop(nested[i],{left:x,top:y,right:x+w,bottom:y+height,padding:0});done.push(nested[i].name);}
-            catch(nestedError){failed.push(nested[i].name+' ('+String(nestedError.message||nestedError)+')');}
-        }
-        if(done.length)msg+='\nAlso cropped the same-size precomp'+(done.length>1?'s':'')+': '+done.join(', ')+'.';
-        if(failed.length)msg+='\nCould not crop: '+failed.join('; ')+'.';
-        return {message:msg,width:w,height:height};
-    }
-    // Precomps that are exactly the size of this comp, sit at their default place (no scale, rotation or offset),
-    // and are used nowhere else. They are cropped with the parent so everything stays arranged the same way.
-    function sameSizePrecomps(c) {
-        var out=[],seen={},i,l,src,t,sc,ok,k;
-        for(i=1;i<=c.numLayers;i++){
-            l=c.layer(i);src=null;try{src=l.source;}catch(e){}
-            if(!(src instanceof CompItem)||src===c||seen[src.id])continue;
-            if(src.width!==c.width||src.height!==c.height)continue;
-            try{if(l.parent||l.threeDLayer||src.usedIn.length!==1)continue;}catch(e2){continue;}
-            try{
-                t=l.property('ADBE Transform Group');ok=true;
-                var pos=t.property('ADBE Position'),anc=t.property('ADBE Anchor Point'),scl=t.property('ADBE Scale'),rot=t.property('ADBE Rotate Z');
-                if(pos.numKeys||anc.numKeys||scl.numKeys||rot.numKeys||pos.expressionEnabled||anc.expressionEnabled||scl.expressionEnabled||rot.expressionEnabled)ok=false;
-                if(pos.dimensionsSeparated)ok=false;
-                sc=scl.value;if(Math.abs(sc[0]-100)>0.01||Math.abs(sc[1]-100)>0.01||Math.abs(rot.value)>0.01)ok=false;
-                var pv=pos.value,av=anc.value;if(Math.abs(pv[0]-av[0])>0.01||Math.abs(pv[1]-av[1])>0.01)ok=false;
-                if(!ok)continue;
-            }catch(e3){continue;}
-            seen[src.id]=true;out.push(src);
-        }
-        return out;
+        return {message:'Cropped to '+w+' × '+height+' px. Duration and keyframe times are unchanged.',width:w,height:height};
     }
     function cropApply(o) {
         if(!pendingCrop || pendingCrop.token!==o.token)h.fail('Crop measurement expired. Run CROP COMP again.');
