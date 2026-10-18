@@ -172,13 +172,9 @@ function VKLink(h) {
         var d = o.data;
         if (!d || !d.layers || !d.layers.length) fail('The sent data was empty.');
         var active = app.project.activeItem;
-        var comp = (o.mode !== 'new' && active instanceof CompItem) ? active : null, i;
+        var comp = (active instanceof CompItem) ? active : null, i;
         var made = false;
-        if (!comp) {
-            var cw = Math.max(16, Math.ceil(d.width / 2) * 2), ch = Math.max(16, Math.ceil(d.height / 2) * 2);
-            comp = app.project.items.addComp(String(o.title || 'SuperV'), cw, ch, 1, 10, 30);
-            made = true;
-        }
+        if (!comp) fail('Open the composition you want the layers in, then send again.');
         var dx = comp.width / 2 - d.width / 2, dy = comp.height / 2 - d.height / 2;
         var st = { gradients: 0, fontMissing: [] };
         for (i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;

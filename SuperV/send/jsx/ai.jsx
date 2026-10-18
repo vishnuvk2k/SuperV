@@ -166,8 +166,9 @@ function superv_send(enc) {
             if (!b) b = [vb[0], vb[1], vb[2], vb[3]];
             else { b[0] = Math.min(b[0], vb[0]); b[1] = Math.max(b[1], vb[1]); b[2] = Math.max(b[2], vb[2]); b[3] = Math.min(b[3], vb[3]); }
         }
-        L = b[0]; T = b[1];
-        var W = r2(b[2] - b[0]), H = r2(b[1] - b[3]);
+        var ar = doc.artboards[doc.artboards.getActiveArtboardIndex()].artboardRect;   /* positions are measured from the artboard, so layers land exactly where they sit in Illustrator */
+        L = ar[0]; T = ar[1];
+        var W = r2(ar[2] - ar[0]), H = r2(ar[1] - ar[3]);
 
         var layers = [], merged = null, first = '';
         for (i = 0; i < items.length; i++) {
