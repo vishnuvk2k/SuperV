@@ -33,7 +33,7 @@
 
   $('send').onclick = function () {
     var btn = $('send'); btn.disabled = true; say('Sending…');
-    var opts = { base: base.replace(/\\/g, '/'), perObject: $('mode-ai').value === 'each', id: String(Date.now()) };
+    var opts = { base: base.replace(/\\/g, '/'), perObject: $('mode-ai').value === 'each', whole: isPS && $('mode-ps').value === 'doc', id: String(Date.now()) };
     var call = '$.evalFile(new File(' + JSON.stringify(jsxFile) + '));superv_send(' + JSON.stringify(encodeURIComponent(JSON.stringify(opts))) + ')';
     cep.evalScript(call, function (raw) {
       btn.disabled = false;

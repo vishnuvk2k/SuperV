@@ -57,6 +57,7 @@
     var job;
     if (it.m.kind === 'vector') {
       var data; try { data = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); } catch (e) { it.state = 'error'; it.error = 'Could not read the sent data: ' + e.message; importing = false; render(); return pump(); }
+      data.dir = path.join(base, 'transfers', id).replace(/\\/g, '/');
       job = window.VKLinkBridge('linkVector', { data: data, title: it.m.title, mode: $('link-mode').value });
     } else job = window.VKLinkBridge('linkImport', { file: file, kind: it.m.kind, title: it.m.title, mode: $('link-mode').value });
     job

@@ -168,6 +168,23 @@ function VKLink(h) {
         return layer;
     }
 
+    var BLENDS = { MULTIPLY: 'MULTIPLY', SCREEN: 'SCREEN', OVERLAY: 'OVERLAY', SOFTLIGHT: 'SOFT_LIGHT', HARDLIGHT: 'HARD_LIGHT', COLORDODGE: 'COLOR_DODGE', COLORBURN: 'COLOR_BURN', DARKEN: 'DARKEN', LIGHTEN: 'LIGHTEN', DIFFERENCE: 'DIFFERENCE', EXCLUSION: 'EXCLUSION', HUE: 'HUE', SATURATION: 'SATURATION', COLORBLEND: 'COLOR', LUMINOSITY: 'LUMINOSITY', LINEARDODGE: 'ADD', LINEARBURN: 'LINEAR_BURN', VIVIDLIGHT: 'VIVID_LIGHT', LINEARLIGHT: 'LINEAR_LIGHT', PINLIGHT: 'PIN_LIGHT', HARDMIX: 'HARD_MIX', DISSOLVE: 'DISSOLVE' };
+
+    function buildImage(comp, L, dx, dy, dir, st) {
+        var f = new File(dir + '/' + L.file);
+        if (!f.exists) { st.missing.push(L.name); return null; }
+        var io = new ImportOptions(f);
+        var item = app.project.importFile(io);
+        var layer = comp.layers.add(item);
+        layer.name = L.name;
+        var tr = layer.property('ADBE Transform Group');
+        tr.property('ADBE Anchor Point').setValue([item.width / 2, item.height / 2]);
+        tr.property('ADBE Position').setValue([L.x + L.w / 2 + dx, L.y + L.h / 2 + dy]);
+        if (item.width && Math.abs(item.width - L.w) > 0.5) tr.property('ADBE Scale').setValue([L.w / item.width * 100, L.h / item.height * 100]);
+        if (L.opacity < 100) tr.property('ADBE Opacity').setValue(L.opacity);
+        return layer;
+    }
+
     function linkVector(o) {
         var d = o.data;
         if (!d || !d.layers || !d.layers.length) fail('The sent data was empty.');
@@ -176,19 +193,26 @@ function VKLink(h) {
         var made = false;
         if (!comp) fail('Open the composition you want the layers in, then send again.');
         var dx = comp.width / 2 - d.width / 2, dy = comp.height / 2 - d.height / 2;
-        var st = { gradients: 0, fontMissing: [] };
+        var st = { gradients: 0, fontMissing: [], missing: [] };
         for (i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
         var out = [];
         for (i = 0; i < d.layers.length; i++) {
             var L = d.layers[i];
-            out.push(L.t === 'text' ? buildText(comp, L.text, dx, dy, st) : buildShape(comp, L, dx, dy, st));
-            if (L.t === 'text') out[out.length - 1].name = L.name;
+            var kindOf = String(L.t), made1 = null;
+            if (kindOf === 'text') made1 = buildText(comp, L.text, dx, dy, st);
+            else if (kindOf === 'image') made1 = buildImage(comp, L, dx, dy, d.dir, st);
+            else made1 = buildShape(comp, L, dx, dy, st);
+            if (made1 === null || made1 === undefined) continue;
+            if (kindOf === 'text') made1.name = L.name;
+            if (L.blend && BLENDS[L.blend]) { try { made1.blendingMode = BlendingMode[BLENDS[L.blend]]; } catch (eb) {} }
+            out.push(made1);
         }
         for (i = 0; i < out.length; i++) out[i].selected = true;
         if (made) comp.openInViewer();
         var msg = 'Added ' + out.length + ' layer' + (out.length === 1 ? '' : 's') + ' to ' + comp.name + '.';
         if (st.gradients) msg += ' ' + st.gradients + ' gradient' + (st.gradients === 1 ? '' : 's') + ' approximated with a solid colour.';
         if (st.fontMissing.length) msg += ' Font not found: ' + st.fontMissing.join(', ') + '.';
+        if (st.missing.length) msg += ' Missing image: ' + st.missing.join(', ') + '.';
         if (d.skipped && d.skipped.length) msg += ' Skipped: ' + d.skipped.join(', ') + '.';
         return { message: msg };
     }
