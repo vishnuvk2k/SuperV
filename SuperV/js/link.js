@@ -62,10 +62,11 @@
     job
       .then(function (r) {
         it.state = 'done';
-        try { fs.writeFileSync(path.join(base, 'transfers', id, 'imported.json'), JSON.stringify({ time: Date.now() })); } catch (_) {}
+        try { fs.writeFileSync(path.join(base, 'transfers', id, 'imported.json'), JSON.stringify({ time: Date.now(), message: r.message || '' })); } catch (_) {}
         if (window.VKLinkStatus) window.VKLinkStatus(r.message || 'Imported.', 'success');
       }, function (e) {
         it.state = 'error'; it.error = e.message;
+        try { fs.writeFileSync(path.join(base, 'transfers', id, 'error.json'), JSON.stringify({ time: Date.now(), message: e.message })); } catch (_) {}
         if (window.VKLinkStatus) window.VKLinkStatus(e.message, 'error');
       })
       .then(function () { importing = false; render(); pump(); });
