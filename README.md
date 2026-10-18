@@ -23,6 +23,7 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 
 ## New in 1.4.1
 
+- **New console look.** The panel now looks like a piece of hardware: your logo, an **FX | TEXT | LINK** switch and a Settings key in one row at the top, a blue display that shows the open tool and the latest status, blue-lit tool keys, recessed option fields and a big Apply key. Tools and their options work exactly as before.
 - **Send from Illustrator and Photoshop (Link).** Select artwork in Illustrator or Photoshop, press **Send** in the SuperV Send panel, and native After Effects layers appear in the comp you already have open, at the same position and size as in the source file. Illustrator shapes become shape layers (fills, strokes, caps and joins), text stays live text with its font, size, colour and alignment, and Photoshop pixel layers arrive as images. Names, opacity and blend modes carry over. No saving, importing, new comp or precomp. Gradients arrive as an approximate solid colour.
 - **Simpler Link tab.** Auto import is always on and the tab shows just the connected apps and the last result.
 - **Organize no longer freezes large projects.** Folder lookups are cached and renames are skipped, so projects with thousands of items finish instead of showing Not Responding.
