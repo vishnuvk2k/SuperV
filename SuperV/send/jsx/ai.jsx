@@ -44,7 +44,7 @@ function superv_send(enc) {
                 stops.push({ o: r2(st.rampPoint / 100), m: r2(st.midPoint / 100), c: toRGB(st.color) || [0, 0, 0], a: r2((st.opacity === undefined ? 100 : st.opacity) / 100) });
             }
             var org = [0, 0]; try { org = [c.origin[0], c.origin[1]]; } catch (e0) {}
-            return { k: 'grad', type: g.type === GradientType.RADIAL ? 'radial' : 'linear', stops: stops,
+            return { k: 'grad', type: String(g.type).toUpperCase().indexOf('RADIAL') >= 0 ? 'radial' : 'linear', stops: stops,
                      angle: r2(c.angle), length: r2(c.length), origin: org, hilite: r2(c.hiliteLength || 0), hiliteAngle: r2(c.hiliteAngle || 0) };
         }
         var rgb = toRGB(c);
@@ -65,8 +65,10 @@ function superv_send(enc) {
     function gb(item) { var b = item.geometricBounds; return [r2(b[0] - L), r2(T - b[1]), r2(b[2] - L), r2(T - b[3])]; }   /* l, t, r, b (y down) */
     function union(a, b) { return a ? [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])] : b; }
 
-    function capName(c) { return c === StrokeCap.ROUNDENDCAP ? 'round' : c === StrokeCap.PROJECTINGENDCAP ? 'square' : 'butt'; }
-    function joinName(j) { return j === StrokeJoin.ROUNDENDJOIN ? 'round' : j === StrokeJoin.BEVELENDJOIN ? 'bevel' : 'miter'; }
+    var CAPS = { 'StrokeCap.BUTTENDCAP': 'butt', 'StrokeCap.ROUNDENDCAP': 'round', 'StrokeCap.PROJECTINGENDCAP': 'square' };
+    var JOINS = { 'StrokeJoin.MITERENDJOIN': 'miter', 'StrokeJoin.ROUNDENDJOIN': 'round', 'StrokeJoin.BEVELENDJOIN': 'bevel' };
+    function capName(c) { return CAPS[String(c)] || 'butt'; }
+    function joinName(j) { return JOINS[String(j)] || 'miter'; }
 
     function paintGroup(item, paths, fillSrc) {
         var g = { name: '', paths: [], fill: null, stroke: null, evenodd: false, opacity: r2(item.opacity === undefined ? 100 : item.opacity) }, i;
@@ -117,9 +119,9 @@ function superv_send(enc) {
         var font = '', fam = '', sty = '';
         try { font = ca.textFont.name; fam = ca.textFont.family; sty = ca.textFont.style; } catch (e1) {}
         var just = 'left';
-        try { var j = pa.justification; just = (j === Justification.CENTER) ? 'center' : (j === Justification.RIGHT) ? 'right' : (j === Justification.FULLJUSTIFY || j === Justification.FULLJUSTIFYLASTLINELEFT) ? 'justify' : 'left'; } catch (e2) {}
+        try { var jn = String(pa.justification).toUpperCase(); just = jn.indexOf('FULLJUSTIFY') >= 0 ? 'justify' : jn.indexOf('CENTER') >= 0 ? 'center' : jn.indexOf('RIGHT') >= 0 ? 'right' : 'left'; } catch (e2) {}
         var a = null, box;
-        if (tf.kind === TextType.AREATEXT) {
+        if (String(tf.kind).toUpperCase().indexOf('AREA') >= 0) {
             kind = 'area';
             var tb = gb(tf);
             ar = [tb[0], tb[1], tb[2] - tb[0], tb[3] - tb[1]];
@@ -152,10 +154,15 @@ function superv_send(enc) {
         level = app.userInteractionLevel; app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 
         var i, vb, b = null, items = [];
-        for (i = 0; i < sel.length; i++) items.push(sel[i]);
+        for (i = 0; i < sel.length; i++) {
+            var cur = sel[i], dup = false, k0;
+            try { while (cur.parent && cur.parent.typename === 'CompoundPathItem') cur = cur.parent; } catch (eP) {}   /* a selected sub-path means the whole compound shape */
+            for (k0 = 0; k0 < items.length; k0++) if (items[k0] == cur) { dup = true; break; }
+            if (!dup) items.push(cur);
+        }
         items.sort(function (x, y) { return zKey(x) - zKey(y); });              /* bottom first */
         for (i = 0; i < items.length; i++) {
-            vb = items[i].geometricBounds;
+            vb = items[i].visibleBounds;                                  /* includes strokes, so nothing is clipped */
             if (!b) b = [vb[0], vb[1], vb[2], vb[3]];
             else { b[0] = Math.min(b[0], vb[0]); b[1] = Math.max(b[1], vb[1]); b[2] = Math.max(b[2], vb[2]); b[3] = Math.min(b[3], vb[3]); }
         }

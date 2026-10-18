@@ -96,12 +96,6 @@ function VKLink(h) {
 
     function applyPaint(contents, g, st) {
         var fill, stroke, i;
-        if (g.fill) {
-            fill = contents.addProperty('ADBE Vector Graphic - Fill');
-            if (g.fill.k === 'grad') { fill.property('ADBE Vector Fill Color').setValue(col3(mid(g.fill)).concat([1])); st.gradients++; }
-            else fill.property('ADBE Vector Fill Color').setValue(col3(g.fill.v).concat([1]));
-            fill.property('ADBE Vector Fill Rule').setValue(g.evenodd ? 2 : 1);
-        }
         if (g.stroke) {
             stroke = contents.addProperty('ADBE Vector Graphic - Stroke');
             var c = g.stroke.color;
@@ -118,6 +112,12 @@ function VKLink(h) {
                 if (g.stroke.dashes.length === 1) { var gp = dsh.addProperty(names[1]); gp.setValue(g.stroke.dashes[0]); }
             }
         }
+        if (g.fill) {
+            fill = contents.addProperty('ADBE Vector Graphic - Fill');
+            if (g.fill.k === 'grad') { fill.property('ADBE Vector Fill Color').setValue(col3(mid(g.fill)).concat([1])); st.gradients++; }
+            else fill.property('ADBE Vector Fill Color').setValue(col3(g.fill.v).concat([1]));
+            fill.property('ADBE Vector Fill Rule').setValue(g.evenodd ? 2 : 1);
+        }
     }
 
     function buildShape(comp, L, dx, dy, st) {
@@ -125,16 +125,16 @@ function VKLink(h) {
         var layer = comp.layers.addShape();
         layer.name = L.name;
         var root = layer.property('ADBE Root Vectors Group');
-        for (i = L.groups.length - 1; i >= 0; i--) {                  /* AE lists the top-most first, so add the bottom first */
+        for (i = 0; i < L.groups.length; i++) {                      /* AE appends: add the top-most group first */
             var g = L.groups[i];
             var grp = root.addProperty('ADBE Vector Group');
             grp.name = g.name || ('Shape ' + (i + 1));
             var contents = grp.property('ADBE Vectors Group');
-            applyPaint(contents, g, st);
-            for (j = g.paths.length - 1; j >= 0; j--) {
+            for (j = 0; j < g.paths.length; j++) {                    /* paths first: AE draws a fill/stroke only for the paths listed above it */
                 var pg = contents.addProperty('ADBE Vector Shape - Group');
                 pg.property('ADBE Vector Shape').setValue(shapeOf(g.paths[j], cx, cy));
             }
+            applyPaint(contents, g, st);
             if (g.opacity < 100) grp.property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').setValue(g.opacity);
         }
         var tr = layer.property('ADBE Transform Group');
@@ -163,7 +163,7 @@ function VKLink(h) {
         src.setValue(td);
         var tr = layer.property('ADBE Transform Group');
         tr.property('ADBE Anchor Point').setValue([0, 0]);
-        tr.property('ADBE Position').setValue(area ? [T.area[0] + dx, T.area[1] + dy] : [T.anchor[0] + dx, T.anchor[1] + dy]);
+        tr.property('ADBE Position').setValue(area ? [T.area[0] + T.area[2] / 2 + dx, T.area[1] + T.area[3] / 2 + dy] : [T.anchor[0] + dx, T.anchor[1] + dy]);   /* box text is anchored at its centre */
         if (T.opacity < 100) tr.property('ADBE Opacity').setValue(T.opacity);
         return layer;
     }
