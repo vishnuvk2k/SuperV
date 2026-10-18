@@ -190,44 +190,7 @@ function VKFeatures(h) {
             for(j=1;fx&&j<=fx.numProperties;j++)if(fx.property(j).enabled){effects++;break;}
             try{if(l.source instanceof CompItem||(l.source&&l.source.mainSource&&l.source.mainSource.hasAlpha))boxed++;}catch(ignore2){}
         }
-        var entries=[],stats={boxed:0};
-        for(i=0;i<ids.length;i++)expandLayer(c,ids[i],[],0,entries,stats);
-        return {ids:ids,effects:effects,boxed:stats.boxed,entries:entries,top:c};
-    }
-    function nameUnique(n){var k=0,i,it;for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);if(it instanceof CompItem&&it.name===n)k++;}return k===1;}
-    // Walk into precomps so the crop follows the real artwork, not the precomp's full frame.
-    function expandLayer(comp,idx,chain,depth,out,stats) {
-        var l=comp.layer(idx),src=null;
-        if(l instanceof CameraLayer||l instanceof LightLayer)return;
-        try{if(!l.hasVideo||l.adjustmentLayer||l.guideLayer||l.nullLayer)return;}catch(e){return;}
-        if(depth>0){try{if(!l.enabled)return;}catch(e1){}try{if(l.isTrackMatte)return;}catch(e2){}}
-        try{src=l.source;}catch(e3){}
-        if(src instanceof CompItem&&depth<4&&out.length<300&&src.numLayers<=200&&nameUnique(src.name)){
-            var next=chain.concat([{c:comp,i:idx}]);
-            for(var k=1;k<=src.numLayers;k++)expandLayer(src,k,next,depth+1,out,stats);
-            return;
-        }
-        if(src instanceof CompItem)stats.boxed++;
-        else{try{if(src&&src.mainSource&&src.mainSource.hasAlpha)stats.boxed++;}catch(e4){}}
-        out.push({chain:chain,comp:comp,idx:idx});
-    }
-    function qs(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';}
-    function layerRef(top,comp,idx){return (comp===top?'thisComp':'comp('+qs(comp.name)+')')+'.layer('+idx+')';}
-    function entryCode(top,e) {
-        var refs=[],k;
-        for(k=0;k<e.chain.length;k++)refs.push(layerRef(top,e.chain[k].c,e.chain[k].i));
-        refs.push(layerRef(top,e.comp,e.idx));
-        var nestedLeaf=e.chain.length>0,cw=nestedLeaf?'comp('+qs(e.comp.name)+')':'thisComp';
-        return 'acc((function(){var T=[time],Ls=['+refs.join(',')+'],k,L,a,b;'+
-            'for(k=0;k<Ls.length;k++){L=Ls[k];a=Math.min(L.inPoint,L.outPoint);b=Math.max(L.inPoint,L.outPoint);if(T[k]<a||T[k]>=b)return null;'+
-            'if(k<Ls.length-1){try{T.push(L.sourceTime(T[k]));}catch(er){T.push(T[k]-L.startTime);}}}'+
-            'var n=Ls.length-1,Lf=Ls[n],tf=T[n],r=Lf.sourceRectAtTime(tf,true);if(!(r.width>0&&r.height>0))return null;'+
-            'var xs=[r.left,r.left+r.width],ys=[r.top,r.top+r.height],x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,u,v,p;'+
-            'for(u=0;u<2;u++)for(v=0;v<2;v++){p=Lf.toComp([xs[u],ys[v]],tf);x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}'+
-            (nestedLeaf?'x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min('+cw+'.width,x1);y1=Math.min('+cw+'.height,y1);if(!(x1>x0&&y1>y0))return null;':'')+
-            'var cs=[[x0,y0],[x1,y0],[x0,y1],[x1,y1]],o=[1e9,1e9,-1e9,-1e9],j;'+
-            'for(j=0;j<4;j++){p=cs[j];for(k=n-1;k>=0;k--)p=Ls[k].toComp(p,T[k]);o=[Math.min(o[0],p[0]),Math.min(o[1],p[1]),Math.max(o[2],p[0]),Math.max(o[3],p[1])];}'+
-            'return o;})());';
+        return {ids:ids,effects:effects,boxed:boxed};
     }
     // Fast crop: union of every measured layer's box over time. No rendering.
     function cropFast(o) {
@@ -239,10 +202,10 @@ function VKFeatures(h) {
         else{start=c.workAreaStart;total=Math.max(1,Math.ceil(c.workAreaDuration*fps-0.0001));}
         if(total>18000)h.fail('The range exceeds 18,000 frames. Choose a shorter range.');
         var selected=[];for(i=0;i<c.selectedLayers.length;i++)selected.push(c.selectedLayers[i].index);
-        var corner=function(which){
-            var code='var lo=[1e9,1e9],hi=[-1e9,-1e9];function acc(v){if(!v)return;lo=[Math.min(lo[0],v[0]),Math.min(lo[1],v[1])];hi=[Math.max(hi[0],v[2]),Math.max(hi[1],v[3])];}\n',e;
-            for(e=0;e<info.entries.length;e++)code+=entryCode(c,info.entries[e])+'\n';
-            return code+which+';';};
+        var corner=function(which){return 'var ids=['+info.ids.join(',')+'],lo=[1e9,1e9],hi=[-1e9,-1e9];\n'+
+            'for(var i=0;i<ids.length;i++){var L=thisComp.layer(ids[i]),a=Math.min(L.inPoint,L.outPoint),b=Math.max(L.inPoint,L.outPoint);if(time<a||time>=b)continue;'+
+            'var r=L.sourceRectAtTime(time,true);if(!(r.width>0&&r.height>0))continue;var xs=[r.left,r.left+r.width],ys=[r.top,r.top+r.height];'+
+            'for(var u=0;u<2;u++)for(var v=0;v<2;v++){var p=L.toComp([xs[u],ys[v]]);lo=[Math.min(lo[0],p[0]),Math.min(lo[1],p[1])];hi=[Math.max(hi[0],p[0]),Math.max(hi[1],p[1])];}}\n'+which+';';};
         var probe=null,x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
         try{
             probe=c.layers.addNull(c.duration);probe.name='SuperV crop probe';probe.moveToEnd();probe.enabled=false;
@@ -262,7 +225,7 @@ function VKFeatures(h) {
         var bounds={left:Math.max(0,Math.min(c.width-1,Math.floor(x0))),top:Math.max(0,Math.min(c.height-1,Math.floor(y0))),right:Math.max(1,Math.min(c.width,Math.ceil(x1))),bottom:Math.max(1,Math.min(c.height,Math.ceil(y1))),padding:o.padding};
         var result=applyCrop(c,bounds),notes=[];
         if(info.effects)notes.push(info.effects+' layer'+(info.effects>1?'s have':' has')+' effects that may draw outside its box (glow, shadow). Add padding or use EXACT.');
-        if(info.boxed)notes.push(info.boxed+' layer'+(info.boxed>1?'s are':' is')+' measured by full frame (precomps nested too deep, or with duplicate names, or footage with transparency). Use EXACT for a tighter crop.');
+        if(info.boxed)notes.push(info.boxed+' precomp/alpha footage layer'+(info.boxed>1?'s are':' is')+' measured by full size. Use EXACT for a tighter crop.');
         if(notes.length)result.message+='\n'+notes.join('\n');
         return result;
     }
