@@ -158,13 +158,47 @@ function VKFeatures(h) {
         x=Math.min(x,c.width-w);y=Math.min(y,c.height-height);
         var jobs=cropPreflight(c),i;
         if(w===c.width && height===c.height)return {message:'No empty border to crop. The artwork already fills the composition.',width:w,height:height};
-        var changes=[];
+        var changes=[],nested=sameSizePrecomps(c,x,y,w,height);
         for(i=0;i<jobs.positions.length;i++)changes.push(prepareShift(jobs.positions[i],x,y));
         for(i=0;i<jobs.anchors.length;i++)changes.push(prepareShift(jobs.anchors[i],x,y));
         c.width=w;c.height=height;
         // AE can adjust default source anchors during resize. Restore the exact planned values afterwards.
         for(i=0;i<changes.length;i++)applyShift(changes[i]);
-        return {message:'Cropped to '+w+' × '+height+' px. Duration and keyframe times are unchanged.',width:w,height:height};
+        var msg='Cropped to '+w+' × '+height+' px. Duration and keyframe times are unchanged.',done=[],failed=[];
+        for(i=0;i<nested.items.length;i++){
+            try{applyCrop(nested.items[i].comp,nested.items[i].box);done.push(nested.items[i].comp.name);}
+            catch(nestedError){failed.push(nested.items[i].comp.name+' ('+String(nestedError.message||nestedError)+')');}
+        }
+        if(done.length)msg+='\nAlso resized the same-size precomp'+(done.length>1?'s':'')+' inside it: '+done.join(', ')+'.';
+        if(nested.skipped.length)msg+='\nLeft alone (used in other comps, scaled, rotated or animated): '+nested.skipped.join(', ')+'.';
+        if(failed.length)msg+='\nCould not resize: '+failed.join('; ')+'.';
+        return {message:msg,width:w,height:height};
+    }
+    // Precomps that are the same size as this comp are cropped by the same area, so they stay lined up with it.
+    // Needs a still layer: no scale, rotation, parent or animated position, and the precomp used only here.
+    function sameSizePrecomps(c,x,y,w,height) {
+        var items=[],skipped=[],seen={},i,l,src;
+        for(i=1;i<=c.numLayers;i++){
+            l=c.layer(i);src=null;try{src=l.source;}catch(e){}
+            if(!(src instanceof CompItem)||src===c||seen[src.id]||src.width!==c.width||src.height!==c.height)continue;
+            seen[src.id]=true;
+            var ok=true;
+            try{
+                if(l.parent||l.threeDLayer||src.usedIn.length!==1)ok=false;
+                var t=l.property('ADBE Transform Group'),pos=t.property('ADBE Position'),anc=t.property('ADBE Anchor Point'),scl=t.property('ADBE Scale'),rot=t.property('ADBE Rotate Z');
+                if(pos.numKeys||anc.numKeys||scl.numKeys||rot.numKeys||pos.expressionEnabled||anc.expressionEnabled||scl.expressionEnabled||rot.expressionEnabled||pos.dimensionsSeparated)ok=false;
+                if(ok){
+                    var sc=scl.value;if(Math.abs(sc[0]-100)>0.01||Math.abs(sc[1]-100)>0.01||Math.abs(rot.value)>0.01)ok=false;
+                    var pv=pos.value,av=anc.value;
+                    // The crop area in the precomp's own pixels.
+                    var left=Math.max(0,Math.min(src.width-1,x-pv[0]+av[0])),top=Math.max(0,Math.min(src.height-1,y-pv[1]+av[1]));
+                    var right=Math.max(left+1,Math.min(src.width,x-pv[0]+av[0]+w)),bottom=Math.max(top+1,Math.min(src.height,y-pv[1]+av[1]+height));
+                    if(ok)items.push({comp:src,box:{left:left,top:top,right:right,bottom:bottom,padding:0}});
+                }
+            }catch(e2){ok=false;}
+            if(!ok)skipped.push(src.name);
+        }
+        return {items:items,skipped:skipped};
     }
     function cropApply(o) {
         if(!pendingCrop || pendingCrop.token!==o.token)h.fail('Crop measurement expired. Run CROP COMP again.');
@@ -190,7 +224,44 @@ function VKFeatures(h) {
             for(j=1;fx&&j<=fx.numProperties;j++)if(fx.property(j).enabled){effects++;break;}
             try{if(l.source instanceof CompItem||(l.source&&l.source.mainSource&&l.source.mainSource.hasAlpha))boxed++;}catch(ignore2){}
         }
-        return {ids:ids,effects:effects,boxed:boxed};
+        var entries=[],stats={boxed:0};
+        for(i=0;i<ids.length;i++)expandLayer(c,ids[i],[],0,entries,stats);
+        return {ids:ids,effects:effects,boxed:stats.boxed,entries:entries,top:c};
+    }
+    function nameUnique(n){var k=0,i,it;for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);if(it instanceof CompItem&&it.name===n)k++;}return k===1;}
+    // Walk into precomps so the crop follows the real artwork, not the precomp's full frame.
+    function expandLayer(comp,idx,chain,depth,out,stats) {
+        var l=comp.layer(idx),src=null;
+        if(l instanceof CameraLayer||l instanceof LightLayer)return;
+        try{if(!l.hasVideo||l.adjustmentLayer||l.guideLayer||l.nullLayer)return;}catch(e){return;}
+        if(depth>0){try{if(!l.enabled)return;}catch(e1){}try{if(l.isTrackMatte)return;}catch(e2){}}
+        try{src=l.source;}catch(e3){}
+        if(src instanceof CompItem&&depth<4&&out.length<300&&src.numLayers<=200&&nameUnique(src.name)){
+            var next=chain.concat([{c:comp,i:idx}]);
+            for(var k=1;k<=src.numLayers;k++)expandLayer(src,k,next,depth+1,out,stats);
+            return;
+        }
+        if(src instanceof CompItem)stats.boxed++;
+        else{try{if(src&&src.mainSource&&src.mainSource.hasAlpha)stats.boxed++;}catch(e4){}}
+        out.push({chain:chain,comp:comp,idx:idx});
+    }
+    function qs(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';}
+    function layerRef(top,comp,idx){return (comp===top?'thisComp':'comp('+qs(comp.name)+')')+'.layer('+idx+')';}
+    function entryCode(top,e) {
+        var refs=[],k;
+        for(k=0;k<e.chain.length;k++)refs.push(layerRef(top,e.chain[k].c,e.chain[k].i));
+        refs.push(layerRef(top,e.comp,e.idx));
+        var nestedLeaf=e.chain.length>0,cw=nestedLeaf?'comp('+qs(e.comp.name)+')':'thisComp';
+        return 'acc((function(){var T=[time],Ls=['+refs.join(',')+'],k,L,a,b;'+
+            'for(k=0;k<Ls.length;k++){L=Ls[k];a=Math.min(L.inPoint,L.outPoint);b=Math.max(L.inPoint,L.outPoint);if(T[k]<a||T[k]>=b)return null;'+
+            'if(k<Ls.length-1){try{T.push(L.sourceTime(T[k]));}catch(er){T.push(T[k]-L.startTime);}}}'+
+            'var n=Ls.length-1,Lf=Ls[n],tf=T[n],r=Lf.sourceRectAtTime(tf,true);if(!(r.width>0&&r.height>0))return null;'+
+            'var xs=[r.left,r.left+r.width],ys=[r.top,r.top+r.height],x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,u,v,p;'+
+            'for(u=0;u<2;u++)for(v=0;v<2;v++){p=Lf.toComp([xs[u],ys[v]],tf);x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}'+
+            (nestedLeaf?'x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min('+cw+'.width,x1);y1=Math.min('+cw+'.height,y1);if(!(x1>x0&&y1>y0))return null;':'')+
+            'var cs=[[x0,y0],[x1,y0],[x0,y1],[x1,y1]],o=[1e9,1e9,-1e9,-1e9],j;'+
+            'for(j=0;j<4;j++){p=cs[j];for(k=n-1;k>=0;k--)p=Ls[k].toComp(p,T[k]);o=[Math.min(o[0],p[0]),Math.min(o[1],p[1]),Math.max(o[2],p[0]),Math.max(o[3],p[1])];}'+
+            'return o;})());';
     }
     // Fast crop: union of every measured layer's box over time. No rendering.
     function cropFast(o) {
@@ -202,10 +273,10 @@ function VKFeatures(h) {
         else{start=c.workAreaStart;total=Math.max(1,Math.ceil(c.workAreaDuration*fps-0.0001));}
         if(total>18000)h.fail('The range exceeds 18,000 frames. Choose a shorter range.');
         var selected=[];for(i=0;i<c.selectedLayers.length;i++)selected.push(c.selectedLayers[i].index);
-        var corner=function(which){return 'var ids=['+info.ids.join(',')+'],lo=[1e9,1e9],hi=[-1e9,-1e9];\n'+
-            'for(var i=0;i<ids.length;i++){var L=thisComp.layer(ids[i]),a=Math.min(L.inPoint,L.outPoint),b=Math.max(L.inPoint,L.outPoint);if(time<a||time>=b)continue;'+
-            'var r=L.sourceRectAtTime(time,true);if(!(r.width>0&&r.height>0))continue;var xs=[r.left,r.left+r.width],ys=[r.top,r.top+r.height];'+
-            'for(var u=0;u<2;u++)for(var v=0;v<2;v++){var p=L.toComp([xs[u],ys[v]]);lo=[Math.min(lo[0],p[0]),Math.min(lo[1],p[1])];hi=[Math.max(hi[0],p[0]),Math.max(hi[1],p[1])];}}\n'+which+';';};
+        var corner=function(which){
+            var code='var lo=[1e9,1e9],hi=[-1e9,-1e9];function acc(v){if(!v)return;lo=[Math.min(lo[0],v[0]),Math.min(lo[1],v[1])];hi=[Math.max(hi[0],v[2]),Math.max(hi[1],v[3])];}\n',e;
+            for(e=0;e<info.entries.length;e++)code+=entryCode(c,info.entries[e])+'\n';
+            return code+which+';';};
         var probe=null,x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
         try{
             probe=c.layers.addNull(c.duration);probe.name='SuperV crop probe';probe.moveToEnd();probe.enabled=false;
@@ -225,7 +296,7 @@ function VKFeatures(h) {
         var bounds={left:Math.max(0,Math.min(c.width-1,Math.floor(x0))),top:Math.max(0,Math.min(c.height-1,Math.floor(y0))),right:Math.max(1,Math.min(c.width,Math.ceil(x1))),bottom:Math.max(1,Math.min(c.height,Math.ceil(y1))),padding:o.padding};
         var result=applyCrop(c,bounds),notes=[];
         if(info.effects)notes.push(info.effects+' layer'+(info.effects>1?'s have':' has')+' effects that may draw outside its box (glow, shadow). Add padding or use EXACT.');
-        if(info.boxed)notes.push(info.boxed+' precomp/alpha footage layer'+(info.boxed>1?'s are':' is')+' measured by full size. Use EXACT for a tighter crop.');
+        if(info.boxed)notes.push(info.boxed+' layer'+(info.boxed>1?'s are':' is')+' measured by full frame (precomps nested too deep, or with duplicate names, or footage with transparency). Use EXACT for a tighter crop.');
         if(notes.length)result.message+='\n'+notes.join('\n');
         return result;
     }
