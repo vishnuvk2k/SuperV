@@ -442,6 +442,16 @@ function VKMore(h) {
             }
             return true;
         }
+        // AE refuses to copy parented layers or layers with linked expressions while an undo group is open.
+        // For those, close the group for the copy and open it again straight after.
+        function copyOut(layer, target) {
+            try { layer.copyToComp(target); return; } catch (first) {
+                if (!/undo group/i.test(String(first.message || first))) throw first;
+            }
+            app.endUndoGroup();
+            try { layer.copyToComp(target); }
+            finally { app.beginUndoGroup('SuperV \u00b7 decomp'); }
+        }
         function copyProp(from, to) {
             var n;
             if (from.numKeys) { for (n = 1; n <= from.numKeys; n++) to.setValueAtTime(from.keyTime(n), from.keyValue(n)); }
@@ -466,7 +476,7 @@ function VKMore(h) {
             }
             var copies = [];
             for (k = 1; k <= pre.numLayers; k++) {
-                pre.layer(k).copyToComp(c);
+                copyOut(pre.layer(k), c);
                 var n = c.layer(1);
                 n.startTime = n.startTime + L.startTime;
                 if (n.inPoint < L.inPoint) n.inPoint = L.inPoint;
