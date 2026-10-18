@@ -28,22 +28,12 @@
     });
   }
 
-  /* ---- list ---- */
+  /* ---- last transfer ---- */
   function render() {
-    var box = $('link-list');
-    if (!order.length) { box.innerHTML = '<p class="empty">Nothing received yet. Open the SuperV Send panel in Illustrator or Photoshop, select artwork and press Send.</p>'; return; }
-    box.innerHTML = '';
-    order.slice().reverse().forEach(function (id) {
-      var it = items[id], row = document.createElement('div');
-      row.className = 'link-item ' + (it.state === 'done' ? 'ok' : it.state === 'error' ? 'err' : '');
-      var name = document.createElement('b'); name.textContent = it.m.title || id;
-      var small = document.createElement('small');
-      small.textContent = it.state === 'done' ? 'imported' : it.state === 'error' ? 'failed' : it.state === 'working' ? 'importing…' : (it.m.app === 'PHXS' ? 'Photoshop' : 'Illustrator');
-      if (it.error) row.title = it.error;
-      var btn = document.createElement('button'); btn.textContent = it.state === 'done' ? 'Again' : 'Import';
-      btn.onclick = function () { enqueue(id); };
-      row.appendChild(name); row.appendChild(small); row.appendChild(btn); box.appendChild(row);
-    });
+    var box = $('link-list'), id = order[order.length - 1], it = id && items[id];
+    if (!it) { box.textContent = 'Open the SuperV Send panel in Illustrator or Photoshop, select artwork and press Send. It arrives here by itself.'; box.className = 'link-last'; return; }
+    box.className = 'link-last ' + (it.state === 'done' ? 'ok' : it.state === 'error' ? 'err' : '');
+    box.textContent = (it.m.title || id) + ' - ' + (it.state === 'done' ? 'added to your comp' : it.state === 'error' ? 'failed: ' + it.error : 'adding...');
   }
 
   /* ---- import ---- */
@@ -58,8 +48,8 @@
     if (it.m.kind === 'vector') {
       var data; try { data = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); } catch (e) { it.state = 'error'; it.error = 'Could not read the sent data: ' + e.message; importing = false; render(); return pump(); }
       data.dir = path.join(base, 'transfers', id).replace(/\\/g, '/');
-      job = window.VKLinkBridge('linkVector', { data: data, title: it.m.title, mode: $('link-mode').value });
-    } else job = window.VKLinkBridge('linkImport', { file: file, kind: it.m.kind, title: it.m.title, mode: $('link-mode').value });
+      job = window.VKLinkBridge('linkVector', { data: data, title: it.m.title, mode: 'active' });
+    } else job = window.VKLinkBridge('linkImport', { file: file, kind: it.m.kind, title: it.m.title, mode: 'active' });
     job
       .then(function (r) {
         it.state = 'done';
@@ -84,7 +74,7 @@
       if (!fs.existsSync(path.join(dir, id, m.file))) return;
       var done = fs.existsSync(path.join(dir, id, 'imported.json'));
       items[id] = { m: m, state: done ? 'done' : 'new', error: '' }; order.push(id);
-      if (!done && $('link-auto').checked) enqueue(id);
+      if (!done && true) enqueue(id);
     });
     /* forget transfers older than a day */
     names.forEach(function (id) {
@@ -102,7 +92,6 @@
     fs.rmdirSync(p);
   }
 
-  $('link-clear').onclick = function () { order = []; items = {}; queue = []; render(); };
   /* Existing transfers from before the panel opened are listed but not auto-imported. */
   try {
     fs.readdirSync(path.join(base, 'transfers')).sort().forEach(function (id) {
