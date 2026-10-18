@@ -45,6 +45,7 @@
 <nav class="tabs" aria-label="Sections">
   <button data-tab="effects" class="active">Effects</button>
   <button data-tab="text">Text</button>
+  <button data-tab="link">Link</button>
 </nav>
 <div id="preview-notice" hidden>Design preview · open in After Effects to use the tools</div>
 <main>
@@ -318,6 +319,25 @@
   </div>
 </section>
 
+<!-- ================= LINK ================= -->
+<section id="link" class="tab">
+  <div class="card link-apps">
+    <div class="link-app"><i id="link-dot-ILST" class="dot"></i><span>Illustrator</span><em id="link-state-ILST">not detected</em></div>
+    <div class="link-app"><i id="link-dot-PHXS" class="dot"></i><span>Photoshop</span><em id="link-state-PHXS">not detected</em></div>
+  </div>
+  <div class="card">
+    <label class="check"><input id="link-auto" type="checkbox" checked>Import as soon as it is sent</label>
+    <label>Send into
+      <select id="link-mode"><option value="active">The open comp (new comp if none)</option><option value="new">A new comp</option></select>
+    </label>
+  </div>
+  <div class="card">
+    <div id="link-list" class="link-list"><p class="empty">Nothing received yet. Open the SuperV Send panel in Illustrator or Photoshop, select artwork and press Send.</p></div>
+    <button id="link-clear" class="secondary">Clear list</button>
+  </div>
+  <p class="hint">Linked through a folder on this PC (<span id="link-folder"></span>). Nothing leaves your computer.</p>
+</section>
+
 <!-- ================= SETTINGS ================= -->
 <section id="settings" class="tab">
   <div class="settings-head"><button id="settings-back" class="icon-button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h3>Settings</h3></div>
@@ -369,5 +389,6 @@
 <script src="js/number-format.js"></script>
 <script src="js/bridge.js"></script>
 <script src="js/panel.js"></script>
+<script src="js/link.js"></script>
 </body>
 </html>

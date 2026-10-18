@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SuperV Send</title>
+<style>
+:root{--blue:#0080ff;--blue-hover:#2b95ff;--bg:#1d1d1f;--surface:#252528;--line:#3a3a3f;--text:#ececee;--faint:#7c7c85;--ok:#2fb36d;--err:#e5484d}
+*{box-sizing:border-box}[hidden]{display:none!important}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:12px/1.45 "Segoe UI",system-ui,sans-serif;padding:14px;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;gap:8px}header img{height:18px}header span{color:var(--faint);margin-left:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:8px}.row span{flex:1}.row em{font-style:normal;color:var(--faint);font-size:11px}
+.dot{width:9px;height:9px;border-radius:50%;background:#55555c}.dot.on{background:var(--ok)}
+label{display:flex;flex-direction:column;gap:4px;color:var(--faint)}
+select{height:30px;background:#161618;border:1px solid var(--line);border-radius:6px;color:var(--text);padding:0 8px;font:inherit}
+button.primary{height:40px;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;font:600 13px "Segoe UI",system-ui,sans-serif;cursor:pointer}
+button.primary:hover{background:var(--blue-hover)}button.primary:disabled{opacity:.6;cursor:default}
+#msg{min-height:34px;font-size:11px;color:var(--faint)}#msg.ok{color:var(--ok)}#msg.err{color:var(--err)}
+</style>
+</head>
+<body>
+<header><img src="../img/superv-logo.png" alt="SuperV"><span id="appname">Send</span></header>
+<div class="card"><div class="row"><i id="dot" class="dot"></i><span>After Effects</span><em id="state">not detected</em></div></div>
+<div class="card">
+  <label id="opt-ai">Layers
+    <select id="mode-ai"><option value="each">One layer per selected object</option><option value="one">Keep as one layer</option></select>
+  </label>
+  <label id="opt-ps">Send
+    <select id="mode-ps"><option value="selected">Selected layers</option></select>
+  </label>
+</div>
+<button id="send" class="primary">Send to After Effects</button>
+<div id="msg">Select artwork, then press Send. In After Effects, open the Link tab in SuperV.</div>
+<script src="send.js"></script>
+</body>
+</html>

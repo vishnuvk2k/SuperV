@@ -67,6 +67,8 @@
     if (!connection) return Promise.reject(new Error('The After Effects connection could not start. Reinstall the complete ' + VERSION + ' package.'));
     return connection.call(action, args);
   }
+  window.VKLinkBridge = bridge;
+  window.VKLinkStatus = function (m, k) { status(m, k); };
   function setBusy(v) { busy = v; all('[data-action],#export-gif').forEach(function (b) { b.disabled = v; }); }
   function setBtn(btn, st) {
     if (!btn || !btn.classList.contains('primary')) return;

@@ -101,7 +101,7 @@ if ($originalDebugBackup) {
 }
 # Read everything back so a bad install is reported now, not discovered as a blank panel later.
 $problems = @()
-foreach ($required in @('index.html','CSXS/manifest.xml','js/panel.js','js/encoder.cjs','jsx/host.jsx','jsx/more.jsx','jsx/features.jsx','jsx/ease.jsx')) {
+foreach ($required in @('index.html','CSXS/manifest.xml','js/panel.js','js/encoder.cjs','jsx/host.jsx','jsx/more.jsx','jsx/features.jsx','jsx/ease.jsx','jsx/link.jsx','js/link.js','send/index.html','send/send.js','send/jsx/ai.jsx','send/jsx/ps.jsx')) {
     if (-not (Test-Path -LiteralPath (Join-Path $destinationPath $required))) { $problems += "Missing file: $required" }
 }
 foreach ($cepVersion in @('11','12')) {

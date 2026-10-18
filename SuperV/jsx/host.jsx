@@ -143,6 +143,11 @@ $.global.__VK_GSD_HOST__ = (function () {
     $.evalFile(easeFile);
     var easing=VKEase({comp:comp,fail:fail});
     actions.ease=easing.ease;
+    var linkFile = new File(hostFile.parent.fsName+'/link.jsx');
+    if(!linkFile.exists)fail('Required script is missing: '+linkFile.fsName);
+    $.evalFile(linkFile);
+    var linking=VKLink({fail:fail});
+    actions.linkImport=linking.linkImport;
     return {version:'1.4.0',source:hostFile.fsName,dispatch:function(action,encoded){var undo=false,response;try{if(!actions.hasOwnProperty(action))fail('Unknown action.');var raw=decodeURIComponent(encoded||'%7B%7D');/* Only URI-encoded JSON from our local panel enters here. */var data=eval('('+raw+')');if(!/^(ping|pickFile|pickOutput|renderBegin|renderFrame|renderFinish|copyKeys)$/.test(action)){app.beginUndoGroup('SuperV · '+action);undo=true;}var result=actions[action](data||{});result.ok=true;response=encode(result);}catch(e){response=encode({ok:false,message:String(e.message||e),line:e.line||null});}finally{if(undo)app.endUndoGroup();}return response;},_test:{encode:encode,actions:actions}};
 })();
 // Standalone test alias. CEP commands use the private namespace above.

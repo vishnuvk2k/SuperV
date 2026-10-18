@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtensionManifest Version="7.0" ExtensionBundleId="com.vk.getshitdone" ExtensionBundleVersion="1.4.0" ExtensionBundleName="SuperV">
-  <ExtensionList><Extension Id="com.vk.getshitdone.panel" Version="1.4.0"/></ExtensionList>
+  <ExtensionList><Extension Id="com.vk.getshitdone.panel" Version="1.4.0"/><Extension Id="com.vk.getshitdone.send" Version="1.4.0"/></ExtensionList>
   <ExecutionEnvironment>
-    <HostList><Host Name="AEFT" Version="[25.0,27.0)"/></HostList>
+    <HostList><Host Name="AEFT" Version="[25.0,27.0)"/><Host Name="ILST" Version="[26.0,99.9]"/><Host Name="PHXS" Version="[24.0,99.9]"/></HostList>
     <LocaleList><Locale Code="All"/></LocaleList>
     <RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList>
   </ExecutionEnvironment>
-  <DispatchInfoList><Extension Id="com.vk.getshitdone.panel"><DispatchInfo>
+  <DispatchInfoList><Extension Id="com.vk.getshitdone.panel"><DispatchInfo Host="AEFT">
     <Resources><MainPath>./index.html</MainPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter><Parameter>--mixed-context</Parameter></CEFCommandLine></Resources>
     <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
     <UI><Type>Panel</Type><Menu>SuperV</Menu><Geometry><Size><Width>420</Width><Height>760</Height></Size><MinSize><Width>330</Width><Height>420</Height></MinSize></Geometry></UI>
+  </DispatchInfo></Extension>
+  <Extension Id="com.vk.getshitdone.send"><DispatchInfo Host="ILST">
+    <Resources><MainPath>./send/index.html</MainPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter><Parameter>--mixed-context</Parameter></CEFCommandLine></Resources>
+    <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
+    <UI><Type>Panel</Type><Menu>SuperV Send</Menu><Geometry><Size><Width>300</Width><Height>330</Height></Size><MinSize><Width>240</Width><Height>260</Height></MinSize></Geometry></UI>
+  </DispatchInfo>
+  <DispatchInfo Host="PHXS">
+    <Resources><MainPath>./send/index.html</MainPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter><Parameter>--mixed-context</Parameter></CEFCommandLine></Resources>
+    <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
+    <UI><Type>Panel</Type><Menu>SuperV Send</Menu><Geometry><Size><Width>300</Width><Height>330</Height></Size><MinSize><Width>240</Width><Height>260</Height></MinSize></Geometry></UI>
   </DispatchInfo></Extension></DispatchInfoList>
 </ExtensionManifest>
