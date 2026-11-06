@@ -170,9 +170,39 @@ function VKLink(h) {
 
     var BLENDS = { MULTIPLY: 'MULTIPLY', SCREEN: 'SCREEN', OVERLAY: 'OVERLAY', SOFTLIGHT: 'SOFT_LIGHT', HARDLIGHT: 'HARD_LIGHT', COLORDODGE: 'COLOR_DODGE', COLORBURN: 'COLOR_BURN', DARKEN: 'DARKEN', LIGHTEN: 'LIGHTEN', DIFFERENCE: 'DIFFERENCE', EXCLUSION: 'EXCLUSION', HUE: 'HUE', SATURATION: 'SATURATION', COLORBLEND: 'COLOR', LUMINOSITY: 'LUMINOSITY', LINEARDODGE: 'ADD', LINEARBURN: 'LINEAR_BURN', VIVIDLIGHT: 'VIVID_LIGHT', LINEARLIGHT: 'LINEAR_LIGHT', PINLIGHT: 'PIN_LIGHT', HARDMIX: 'HARD_MIX', DISSOLVE: 'DISSOLVE' };
 
-    function buildImage(comp, L, dx, dy, dir, st) {
-        var f = new File(dir + '/' + L.file);
-        if (!f.exists) { st.missing.push(L.name); return null; }
+    /* Windows-safe file or folder name. % and ~ are removed too because ExtendScript paths treat them specially. */
+    function safeName(s, fallback) {
+        var n = String(s || '').replace(/[\\\/:*?"<>|%~\u0000-\u001f]/g, '_').replace(/^[\s.]+|[\s.]+$/g, '').substring(0, 80).replace(/[\s.]+$/, '');
+        if (!n) n = fallback;
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(n)) n += '_';
+        return n;
+    }
+
+    /* Images live beside the .aep, in a folder named after the Photoshop file, so they outlast the temporary link folder. */
+    function workFolder(d) {
+        var project = app.project.file;
+        if (!project) fail('Save your After Effects project first, then send again.');
+        var dir = new Folder(project.parent.absoluteURI + '/' + File.encode(safeName(d.doc, 'SuperV Link')));
+        if (!dir.exists && !dir.create()) fail('Could not create the folder: ' + dir.fsName);
+        return dir;
+    }
+
+    /* Named after the layer. An existing file is never overwritten: layers already in a comp may link to it. */
+    function keepImage(L, src, dir) {
+        var stem = safeName(L.name, 'Layer'), n = 1, dest;
+        do {
+            dest = new File(dir.absoluteURI + '/' + File.encode(stem + (n > 1 ? '_' + n : '') + '.png'));
+            n++;
+        } while (dest.exists);
+        return src.copy(dest) ? dest : null;
+    }
+
+    function buildImage(comp, L, dx, dy, dir, keep, st) {
+        var src = new File(dir + '/' + L.file);
+        if (!src.exists) { st.missing.push(L.name); return null; }
+        var f = keepImage(L, src, keep);
+        if (!f) { st.missing.push(L.name); return null; }
+        st.saved++;
         var io = new ImportOptions(f);
         var item = app.project.importFile(io);
         var layer = comp.layers.add(item);
@@ -193,14 +223,15 @@ function VKLink(h) {
         var made = false;
         if (!comp) fail('Open the composition you want the layers in, then send again.');
         var dx = comp.width / 2 - d.width / 2, dy = comp.height / 2 - d.height / 2;
-        var st = { gradients: 0, fontMissing: [], missing: [] };
+        var st = { gradients: 0, fontMissing: [], missing: [], saved: 0 }, keep = null;
+        for (i = 0; i < d.layers.length; i++) if (String(d.layers[i].t) === 'image') { keep = workFolder(d); break; }
         for (i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
         var out = [];
         for (i = 0; i < d.layers.length; i++) {
             var L = d.layers[i];
             var kindOf = String(L.t), made1 = null;
             if (kindOf === 'text') made1 = buildText(comp, L.text, dx, dy, st);
-            else if (kindOf === 'image') made1 = buildImage(comp, L, dx, dy, d.dir, st);
+            else if (kindOf === 'image') made1 = buildImage(comp, L, dx, dy, d.dir, keep, st);
             else made1 = buildShape(comp, L, dx, dy, st);
             if (made1 === null || made1 === undefined) continue;
             if (kindOf === 'text') made1.name = L.name;
@@ -210,6 +241,7 @@ function VKLink(h) {
         for (i = 0; i < out.length; i++) out[i].selected = true;
         if (made) comp.openInViewer();
         var msg = 'Added ' + out.length + ' layer' + (out.length === 1 ? '' : 's') + ' to ' + comp.name + '.';
+        if (st.saved) msg += ' Images saved in ' + keep.fsName + '.';
         if (st.gradients) msg += ' ' + st.gradients + ' gradient' + (st.gradients === 1 ? '' : 's') + ' approximated with a solid colour.';
         if (st.fontMissing.length) msg += ' Font not found: ' + st.fontMissing.join(', ') + '.';
         if (st.missing.length) msg += ' Missing image: ' + st.missing.join(', ') + '.';

@@ -34,6 +34,10 @@ Everything below is in 1.3.0 except the update check.
 - Compact tiles: 62 px high, five per row in wide panels.
 - **Spin** tile: rotate forever (spin in place) or orbit around the layer's position, clockwise or counter-clockwise, speed and radius as sliders, no keyframes. Stop removes it again.
 
+## Built in 1.4.2
+
+- Photoshop images sent through Link save beside the After Effects project, in a folder named after the Photoshop file.
+
 ## Built in 1.4.1
 
 - Illustrator and Photoshop send as native layers (Link), Organize freeze fix, Decomp undo-group fix, Crop resizes same-size precomps.

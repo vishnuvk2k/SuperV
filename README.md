@@ -1,4 +1,4 @@
-# SuperV 1.4.1
+# SuperV 1.4.2
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, and the FFmpeg encoder.
 
@@ -21,10 +21,14 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 2. Still blank? Run **scripts\Check-SuperV.ps1** (right-click, Run with PowerShell). It reports the user, the files, both registry flags and any "blocked" files. Add `-Fix` to repair the registry flag and unblock the files.
 3. If a script fails to load or crashes while starting, the panel now shows a red message at the top instead of staying empty.
 
+## New in 1.4.2
+
+- **Photoshop images save beside your work file.** Images sent from Photoshop now go in a folder named after the Photoshop file, next to your After Effects project, and each PNG is named after its layer (for example `Logo Designogo.png`). sending the same layer again saves `logo_2.png`, so nothing is overwritten. save your after effects project before sending images. this also stops sent images going missing a day later, when the temporary link folder is cleared.
+
 ## New in 1.4.1
 
 - **New console look.** The panel now looks like a piece of hardware: your logo, an **FX | TEXT | LINK** switch and a Settings key in one row at the top, a blue display that shows the open tool and the latest status, blue-lit tool keys, recessed option fields and a big Apply key. Tools and their options work exactly as before.
-- **Send from Illustrator and Photoshop (Link).** Select artwork in Illustrator or Photoshop, press **Send** in the SuperV Send panel, and native After Effects layers appear in the comp you already have open, at the same position and size as in the source file. Illustrator shapes become shape layers (fills, strokes, caps and joins), text stays live text with its font, size, colour and alignment, and Photoshop pixel layers arrive as images. Names, opacity and blend modes carry over. No saving, importing, new comp or precomp. Gradients arrive as an approximate solid colour.
+- **Send from Illustrator and Photoshop (Link).** Select artwork in Illustrator or Photoshop, press **Send** in the SuperV Send panel, and native After Effects layers appear in the comp you already have open, at the same position and size as in the source file. Illustrator shapes become shape layers (fills, strokes, caps and joins), text stays live text with its font, size, colour and alignment, and Photoshop pixel layers arrive as images. Names, opacity and blend modes carry over. No importing, new comp or precomp. Gradients arrive as an approximate solid colour.
 - **Simpler Link tab.** Auto import is always on and the tab shows just the connected apps and the last result.
 - **Organize no longer freezes large projects.** Folder lookups are cached and renames are skipped, so projects with thousands of items finish instead of showing Not Responding.
 - **Decomp fixed.** Unpacking a precomp that contains parented layers or layers with linked expressions no longer fails with "Can't copy a layer with a parent or with a linked expression, while an Undo Group is open". Those layers may need an extra Ctrl+Z to undo.

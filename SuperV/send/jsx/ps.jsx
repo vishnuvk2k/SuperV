@@ -192,7 +192,7 @@ function superv_send(enc) {
 
         var title = picked.length === 1 ? first : doc.name.replace(/\.[^.]+$/, '') + ' (' + layers.length + ')';
         var df = new File(dir.fsName + '/data.json');
-        df.encoding = 'UTF-8'; df.open('w'); df.write(ser({ version: 1, app: 'PHXS', width: W, height: H, layers: layers, skipped: skipped })); df.close();
+        df.encoding = 'UTF-8'; df.open('w'); df.write(ser({ version: 1, app: 'PHXS', doc: doc.name.replace(/\.[^.]+$/, ''), width: W, height: H, layers: layers, skipped: skipped })); df.close();
         var mf = new File(dir.fsName + '/manifest.tmp');
         mf.encoding = 'UTF-8'; mf.open('w');
         mf.write(ser({ id: o.id, app: 'PHXS', kind: 'vector', file: 'data.json', title: title, count: layers.length, width: W, height: H, time: (new Date()).getTime() }));
