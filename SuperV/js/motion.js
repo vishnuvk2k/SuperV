@@ -104,10 +104,20 @@
   function grid() { cx.strokeStyle = 'rgba(255,255,255,.035)'; cx.lineWidth = 1; cx.beginPath(); for (var i = 0.5; i < W; i += 18) { cx.moveTo(i, 0); cx.lineTo(i, H); } for (i = 0.5; i < H; i += 18) { cx.moveTo(0, i); cx.lineTo(W, i); } cx.stroke(); }
   function fmt(v) { try { return window.VKFormatNumber(v, Math.max(0, Math.min(6, Math.floor(num('counter-decimals', 0)))), on('counter-separator'), Math.max(1, num('counter-first', 3)), Math.max(1, num('counter-every', 3)), val('counter-prefix', ''), val('counter-suffix', '')); } catch (e) { return String(Math.round(v)); } }
 
+  /* One preview only: the Animate tool's real text preview (same engine as After Effects presets) lives on the stage. */
+  var tStage = $('text-stage'), tTrack = $('preview-progress') ? $('preview-progress').parentNode : null, replay = $('replay'), nextReplay = 0;
+  if (tStage) lcd.insertBefore(tStage, lcd.querySelector('.lcd-top'));
+  if (tTrack) lcd.appendChild(tTrack);
+  lcd.addEventListener('click', function () { if (lcd.hasAttribute('data-text') && replay) { replay.click(); nextReplay = performance.now() + loopMs(); } });
+  function loopMs() { return Math.max(1600, (num('text-duration', 0.8) + 1.4) * 1000); }
+
   var tool = '', tab = '', t0 = 0;
   function current() {
     var a = document.querySelector('main > .tab.active'), id = a ? a.id : 'effects', tl = a ? a.querySelector('.tile.active') : null, tt = tl ? tl.dataset.tool : '';
-    if (tt !== tool || id !== tab) { tool = tt; tab = id; t0 = performance.now(); }
+    if (tt !== tool || id !== tab) { tool = tt; tab = id; t0 = performance.now(); nextReplay = t0 + loopMs(); }
+    var textMode = tab === 'text' && tool === 'animate';
+    if (textMode !== lcd.hasAttribute('data-text')) { if (textMode) lcd.setAttribute('data-text', '1'); else lcd.removeAttribute('data-text'); }
+    if (textMode && replay && performance.now() >= nextReplay) { replay.click(); nextReplay = performance.now() + loopMs(); }   /* keep it looping like every other preview */
   }
   var SANS = '"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif', MONO = 'Consolas,"Cascadia Mono",monospace';
   function draw(now) {
@@ -157,7 +167,7 @@
       case 'decomp': var e5 = bez(Math.min(1, (t % 2.4) / 1.1), POP); cx.strokeStyle = '#3a3d44'; cx.setLineDash([4, 4]); cx.strokeRect(mx - 28 - 52 * e5, my - 26, 56 + 104 * e5, 52); cx.setLineDash([]);
         for (k = -1; k <= 1; k++) layer(mx + k * 52 * e5, my, s - 6, 0, k ? e5 : 1); break;
       case 'duplicate': var e6 = bez(Math.min(1, (t % 2.2) / 1), POP); for (k = 3; k >= 0; k--) layer(mx - 34 + k * 22 * e6, my - 12 + k * 8 * e6, s, 0, 1 - k * 0.2); break;
-      case 'animate': var word = 'SuperV', fz = Math.min(40, W / 7), x1; cx.font = '800 ' + fz + 'px ' + SANS; var tw = cx.measureText(word).width; x1 = mx - tw / 2;
+      case 'animate': if (tStage) break; var word = 'SuperV', fz = Math.min(40, W / 7), x1; cx.font = '800 ' + fz + 'px ' + SANS; var tw = cx.measureText(word).width; x1 = mx - tw / 2;
         var by = val('text-by', 'word'), dirIn = seg('text-direction', 'in') === 'in';
         for (k = 0; k < word.length; k++) { var dl = by === 'character' ? k * 0.07 : 0, pp = bez(Math.min(1, Math.max(0, ((t % 2.6) - dl) / 0.6)), POP); if (!dirIn) pp = 1 - pp;
           var chW = cx.measureText(word[k]).width; cx.save(); cx.globalAlpha = Math.min(1, pp * 1.4); cx.translate(x1 + chW / 2, my + (1 - pp) * 22); text(word[k], 0, 0, '800 ' + fz + 'px ' + SANS, k === 5 ? acc : '#fff'); cx.restore(); x1 += chW; } break;

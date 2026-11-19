@@ -117,3 +117,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 @media (max-width:330px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}#lcd{margin:0 10px 2px}}
 @media (prefers-reduced-motion:reduce){.tile{transform:none}}
+
+/* Text > Animate: the real preset preview plays on the main stage; no second preview in the options */
+#lcd #text-stage{position:absolute;left:0;top:0;right:0;bottom:0;height:auto;margin:0;padding:22px 12px 14px;background:transparent;border:0;border-radius:0;box-shadow:none;display:none;cursor:pointer}
+#lcd[data-text] #text-stage{display:flex}
+#lcd #preview-text{font-size:36px;color:#fff}
+#lcd #preview-text.has-lines{font-size:24px}
+#lcd .preview-tag{left:10px;bottom:9px;font:500 9.5px var(--mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--acc)}
+#lcd #replay{display:none}
+#lcd .track{position:absolute;left:0;right:0;bottom:0;height:2px;margin:0;border-radius:0;background:transparent;display:none}
+#lcd[data-text] .track{display:block}
+#lcd[data-msg] .track{display:none}
