@@ -23,6 +23,8 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 
 ## New in 1.4.3
 
+- **New Motion Panel look.** A live preview screen at the top plays every tool with your settings (drag the Ease curve, change the Wiggle amount, type Counter numbers and watch it react). Keys perform their own move when you hover them, tilt under the mouse and show a small bolt when they run in one click. Apply sends a ripple and a shockwave, and the result slides up on the screen. Number keys 1 to 9 pick a tool and Enter applies. The panel now fits narrow docks without cutting off tabs or tools. Blue theme.
+- **Counter fixes.** Numbers above 1,000,000 now work (After Effects sliders stop at one million, so big counts run through a VK COUNTER PROGRESS slider). Counting through zero no longer shows "-0".
 - **Assets save next to your design file.** When you send from Photoshop or Illustrator, SuperV creates a folder with the same name as your file, in the same place it is saved, and puts every image there named after its layer (for example `D:\Designs\cde.psd` saves to `D:\Designs\cde\Logo.png`). After Effects imports them from that folder. Sending the same layer again saves `Logo_2.png`, so nothing is overwritten. Save your Photoshop or Illustrator file before sending images.
 - **Illustrator sends everything.** Placed and embedded images, clipping masks, symbols, meshes and other artwork that cannot be rebuilt as live layers now arrive as sharp transparent PNGs (2x) at the right position and stacking order. Shapes and text still arrive as live, editable layers.
 

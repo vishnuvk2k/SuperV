@@ -36,6 +36,7 @@ Everything below is in 1.3.0 except the update check.
 
 ## Built in 1.4.3
 
+- Motion Panel UI: live preview stage, moving keys, Apply shockwave, 1-9 and Enter shortcuts, narrow-dock fix. Counter above one million and no "-0".
 - Photoshop and Illustrator assets save in a folder next to the source file. Illustrator sends images, clip groups and other artwork as PNG.
 
 ## Built in 1.4.2
