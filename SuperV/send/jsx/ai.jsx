@@ -86,28 +86,90 @@ function superv_send(enc) {
         return g;
     }
 
-    var skipped = [];
-    function collect(item, groups, texts, bbox) {          /* returns updated bbox */
+    /* ---- assets: a folder named after the Illustrator file, next to it: D:\Designs\cde.ai -> D:\Designs\cde\Logo.png ---- */
+    var assets = null;
+    function safeName(s, fallback) {
+        var n = String(s || '').replace(/[\\\/:*?"<>|%~\u0000-\u001f]/g, '_').replace(/^[\s.]+|[\s.]+$/g, '').substring(0, 80).replace(/[\s.]+$/, '');
+        if (!n) n = fallback;
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(n)) n += '_';
+        return n;
+    }
+    function assetFolder() {
+        if (assets) return assets;
+        var home = null;
+        try { home = doc.path; } catch (eP) { home = null; }          /* an unsaved document has no path */
+        if (!home || !String(home.fsName || '') || !home.exists) { var eu = new Error('Save your Illustrator file first, then send.'); eu.user = true; throw eu; }
+        assets = new Folder(home.absoluteURI + '/' + File.encode(safeName(doc.name.replace(/\.[^.]+$/, ''), 'SuperV assets')));
+        if (!assets.exists && !assets.create()) { var ec = new Error('Could not create the folder: ' + assets.fsName); ec.user = true; throw ec; }
+        return assets;
+    }
+    function assetFile(name) {                                         /* never overwrites: Logo.png, Logo_2.png, ... */
+        var dir = assetFolder(), stem = safeName(name, 'Artwork'), n = 1, f;
+        do { f = new File(dir.absoluteURI + '/' + File.encode(stem + (n > 1 ? '_' + n : '') + '.png')); n++; } while (f.exists);
+        return f;
+    }
+
+    /* ---- output stream, bottom layer first. Shapes next to each other share one shape layer. ---- */
+    var skipped = [], stream = [], run = null, curName = '', doc = null;
+    function shapeGroup(g, box) {
+        if (!run) { run = { t: 'shape', name: curName, box: null, groups: [] }; stream.push(run); }
+        run.groups.unshift(g);                                         /* shape layer contents are listed top first */
+        run.box = run.box ? union(run.box, box) : box;
+    }
+    function textLayer(tx) {
+        run = null;
+        stream.push({ t: 'text', name: tx.data.name || tx.data.text.replace(/\n/g, ' ').substring(0, 60), text: tx.data });
+    }
+    function imageName(item) {
+        var n = '';
+        try { n = item.name; } catch (e0) {}
+        if (!n && item.typename === 'PlacedItem') { try { n = decodeURI(item.file.name).replace(/\.[^.]+$/, ''); } catch (e1) {} }
+        if (!n) n = { RasterItem: 'Image', PlacedItem: 'Image', GroupItem: 'Clip group', SymbolItem: 'Symbol', MeshItem: 'Mesh' }[item.typename] || 'Artwork';
+        return String(n).replace(/[\r\n]/g, ' ').substring(0, 60);
+    }
+    /* Anything After Effects cannot rebuild as live layers (images, clip groups, symbols, meshes, plugin art)
+       is rendered on its own to a transparent PNG at 2x, saved in the asset folder and sent as an image. */
+    function exportImage(item) {
+        var vb = item.visibleBounds, w = vb[2] - vb[0], h = vb[1] - vb[3], tmp = null;
+        if (w < 0.5 || h < 0.5) return;
+        var name = imageName(item), f = assetFile(name), scale = Math.min(200, Math.floor(8000 / Math.max(w, h) * 100));
+        try {
+            tmp = app.documents.add(DocumentColorSpace.RGB, Math.max(w, 1), Math.max(h, 1));
+            var dup = item.duplicate(tmp.layers[0], ElementPlacement.PLACEATBEGINNING);
+            try { dup.hidden = false; } catch (eH) {}
+            tmp.artboards[0].artboardRect = dup.visibleBounds;
+            var po = new ExportOptionsPNG24();
+            po.antiAliasing = true; po.transparency = true; po.artBoardClipping = true;
+            po.horizontalScale = scale; po.verticalScale = scale;
+            tmp.exportFile(f, ExportType.PNG24, po);
+        } finally {
+            if (tmp) { try { tmp.close(SaveOptions.DONOTSAVECHANGES); } catch (eC) {} }
+        }
+        if (!f.exists) { skipped.push(name + ' (could not export)'); return; }
+        run = null;
+        stream.push({ t: 'image', name: name, file: f.name, path: f.fsName, x: r2(vb[0] - L), y: r2(T - vb[1]), w: r2(w), h: r2(h), opacity: 100 });
+    }
+
+    function walk(item) {
         var t = item.typename, i, g;
-        try { if (item.hidden || item.locked && false) return bbox; } catch (e) {}
+        try { if (item.hidden) return; } catch (e) {}
         if (t === 'PathItem') {
-            if (item.guides || item.clipping) return bbox;
-            g = paintGroup(item, [item], item); g.name = item.name || 'Path'; groups.push(g); return union(bbox, gb(item));
+            if (item.guides || item.clipping) return;
+            g = paintGroup(item, [item], item); g.name = item.name || 'Path'; shapeGroup(g, gb(item)); return;
         }
         if (t === 'CompoundPathItem') {
             var ps = [], k;
             for (k = 0; k < item.pathItems.length; k++) ps.push(item.pathItems[k]);
-            if (!ps.length) return bbox;
-            g = paintGroup(item, ps, ps[0]); g.name = item.name || 'Compound path'; groups.push(g); return union(bbox, gb(item));
+            if (!ps.length) return;
+            g = paintGroup(item, ps, ps[0]); g.name = item.name || 'Compound path'; shapeGroup(g, gb(item)); return;
         }
         if (t === 'GroupItem') {
-            if (item.clipped) skipped.push('clipping mask');
-            for (i = 0; i < item.pageItems.length; i++) bbox = collect(item.pageItems[i], groups, texts, bbox);
-            return bbox;
+            if (item.clipped) { exportImage(item); return; }            /* the mask is kept by sending the group as one image */
+            for (i = item.pageItems.length - 1; i >= 0; i--) walk(item.pageItems[i]);   /* bottom first */
+            return;
         }
-        if (t === 'TextFrame') { var tx = textData(item); if (tx) { texts.push(tx.data); bbox = union(bbox, tx.box); } return bbox; }
-        skipped.push(t);
-        return bbox;
+        if (t === 'TextFrame') { var tx = textData(item); if (tx) textLayer(tx); return; }
+        exportImage(item);
     }
 
     function textData(tf) {
@@ -149,7 +211,7 @@ function superv_send(enc) {
     try {
         var o = eval('(' + decodeURIComponent(enc) + ')'); job = o;
         if (app.documents.length === 0) return err('Open a document first.');
-        var doc = app.activeDocument, sel = doc.selection;
+        doc = app.activeDocument; var sel = doc.selection;
         if (!sel || !sel.length) return err('Select some artwork first.');
         level = app.userInteractionLevel; app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 
@@ -170,34 +232,27 @@ function superv_send(enc) {
         L = ar[0]; T = ar[1];
         var W = r2(ar[2] - ar[0]), H = r2(ar[1] - ar[3]);
 
-        var layers = [], merged = null, first = '';
+        var layers = [], first = '';
         for (i = 0; i < items.length; i++) {
-            var groups = [], texts = [], box = null, it = items[i], k;
-            box = collect(it, groups, texts, null);
+            var it = items[i];
             var nm = '';
             try { nm = it.typename === 'TextFrame' ? it.contents : it.name; } catch (e5) {}
             if (!nm) nm = (it.typename === 'GroupItem' ? 'Group' : it.typename === 'CompoundPathItem' ? 'Compound path' : it.typename === 'PathItem' ? 'Path' : 'Object');
             nm = String(nm).replace(/[\r\n]/g, ' ').substring(0, 60);
             if (!first) first = nm;
-            if (groups.length) {
-                if (groups.length === 1 && !groups[0].name) groups[0].name = nm;
-                if (o.perObject) layers.push({ t: 'shape', name: nm, box: box, groups: groups });
-                else {
-                    if (!merged) { merged = { t: 'shape', name: nm, box: null, groups: [] }; layers.push(merged); }
-                    for (k = 0; k < groups.length; k++) merged.groups.push(groups[k]);
-                    merged.box = merged.box ? union(merged.box, box) : box;
-                }
-            }
-            for (k = 0; k < texts.length; k++) { var tx = texts[k]; layers.push({ t: 'text', name: tx.name || tx.text.replace(/\n/g, ' ').substring(0, 60), text: tx }); }
+            curName = nm;
+            if (o.perObject) run = null;                               /* "each object" mode: a layer per selected object */
+            walk(it);
         }
-        if (!layers.length) return err('Nothing in the selection can be sent yet' + (skipped.length ? ' (' + skipped.join(', ') + ' are not supported).' : '.'));
+        layers = stream;
+        if (!layers.length) return err('Nothing in the selection can be sent' + (skipped.length ? ' (' + skipped.join(', ') + ').' : '.'));
 
         var dir = new Folder(o.base + '/transfers/' + o.id);
         if (!dir.exists && !dir.create()) return err('Could not create the link folder: ' + dir.fsName);
         var title = items.length === 1 ? first : doc.name.replace(/\.[^.]+$/, '') + ' (' + items.length + ')';
         var df = new File(dir.fsName + '/data.json');
         df.encoding = 'UTF-8'; df.open('w');
-        df.write(ser({ version: 1, app: 'ILST', width: W, height: H, layers: layers, skipped: skipped }));
+        df.write(ser({ version: 1, app: 'ILST', doc: doc.name.replace(/\.[^.]+$/, ''), assets: assets ? assets.fsName : null, width: W, height: H, layers: layers, skipped: skipped }));
         df.close();
         var mf = new File(dir.fsName + '/manifest.tmp');
         mf.encoding = 'UTF-8'; mf.open('w');
@@ -205,10 +260,10 @@ function superv_send(enc) {
         mf.close();
         mf.rename('manifest.json');                           /* written last so the receiver never sees half a transfer */
         var note = skipped.length ? ' (skipped: ' + skipped.join(', ') + ')' : '';
-        return 'OK:' + encodeURIComponent('Sent ' + layers.length + ' layer' + (layers.length === 1 ? '' : 's') + ' to After Effects.' + note);
+        return 'OK:' + encodeURIComponent('Sent ' + layers.length + ' layer' + (layers.length === 1 ? '' : 's') + ' to After Effects.' + (assets ? ' Assets saved in ' + assets.fsName + '.' : '') + note);
     } catch (e) {
         try { if (job) { var bad = new Folder(job.base + '/transfers/' + job.id); if (bad.exists && !new File(bad.fsName + '/manifest.json').exists) purge(bad); } } catch (ignore0) {}
-        return err(String(e.message || e) + (e.line ? ' (line ' + e.line + ')' : ''));
+        return err(String(e.message || e) + (e.line && !e.user ? ' (line ' + e.line + ')' : ''));
     } finally {
         try { if (level !== null) app.userInteractionLevel = level; } catch (ignore2) {}
     }

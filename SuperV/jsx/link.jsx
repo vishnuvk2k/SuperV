@@ -198,11 +198,17 @@ function VKLink(h) {
     }
 
     function buildImage(comp, L, dx, dy, dir, keep, st) {
-        var src = new File(dir + '/' + L.file);
-        if (!src.exists) { st.missing.push(L.name); return null; }
-        var f = keepImage(L, src, keep);
-        if (!f) { st.missing.push(L.name); return null; }
-        st.saved++;
+        var f;
+        if (L.path) {                                                  /* 1.4.3+: already saved in the asset folder next to the source file */
+            f = new File(L.path);
+            if (!f.exists) { st.missing.push(L.name); return null; }
+        } else {                                                       /* older Send panels: copy out of the temporary link folder */
+            var src = new File(dir + '/' + L.file);
+            if (!src.exists) { st.missing.push(L.name); return null; }
+            f = keepImage(L, src, keep);
+            if (!f) { st.missing.push(L.name); return null; }
+            st.saved++;
+        }
         var io = new ImportOptions(f);
         var item = app.project.importFile(io);
         var layer = comp.layers.add(item);
@@ -224,7 +230,7 @@ function VKLink(h) {
         if (!comp) fail('Open the composition you want the layers in, then send again.');
         var dx = comp.width / 2 - d.width / 2, dy = comp.height / 2 - d.height / 2;
         var st = { gradients: 0, fontMissing: [], missing: [], saved: 0 }, keep = null;
-        for (i = 0; i < d.layers.length; i++) if (String(d.layers[i].t) === 'image') { keep = workFolder(d); break; }
+        for (i = 0; i < d.layers.length; i++) if (String(d.layers[i].t) === 'image' && !d.layers[i].path) { keep = workFolder(d); break; }
         for (i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
         var out = [];
         for (i = 0; i < d.layers.length; i++) {
@@ -242,6 +248,7 @@ function VKLink(h) {
         if (made) comp.openInViewer();
         var msg = 'Added ' + out.length + ' layer' + (out.length === 1 ? '' : 's') + ' to ' + comp.name + '.';
         if (st.saved) msg += ' Images saved in ' + keep.fsName + '.';
+        else if (d.assets) msg += ' Assets in ' + d.assets + '.';
         if (st.gradients) msg += ' ' + st.gradients + ' gradient' + (st.gradients === 1 ? '' : 's') + ' approximated with a solid colour.';
         if (st.fontMissing.length) msg += ' Font not found: ' + st.fontMissing.join(', ') + '.';
         if (st.missing.length) msg += ' Missing image: ' + st.missing.join(', ') + '.';

@@ -1,4 +1,4 @@
-# SuperV 1.4.2
+# SuperV 1.4.3
 
 After Effects CEP panel for Windows, targeting AE 2025 and 2026. Dark gray interface with azure blue **#0080FF**. Includes JavaScript/JSX, JSON defaults, and the FFmpeg encoder.
 
@@ -21,9 +21,14 @@ This is almost always Windows, not the panel. SuperV is unsigned, so After Effec
 2. Still blank? Run **scripts\Check-SuperV.ps1** (right-click, Run with PowerShell). It reports the user, the files, both registry flags and any "blocked" files. Add `-Fix` to repair the registry flag and unblock the files.
 3. If a script fails to load or crashes while starting, the panel now shows a red message at the top instead of staying empty.
 
+## New in 1.4.3
+
+- **Assets save next to your design file.** When you send from Photoshop or Illustrator, SuperV creates a folder with the same name as your file, in the same place it is saved, and puts every image there named after its layer (for example `D:\Designs\cde.psd` saves to `D:\Designs\cde\Logo.png`). After Effects imports them from that folder. Sending the same layer again saves `Logo_2.png`, so nothing is overwritten. Save your Photoshop or Illustrator file before sending images.
+- **Illustrator sends everything.** Placed and embedded images, clipping masks, symbols, meshes and other artwork that cannot be rebuilt as live layers now arrive as sharp transparent PNGs (2x) at the right position and stacking order. Shapes and text still arrive as live, editable layers.
+
 ## New in 1.4.2
 
-- **Photoshop images save beside your work file.** Images sent from Photoshop now go in a folder named after the Photoshop file, next to your After Effects project, and each PNG is named after its layer (for example `Logo Designogo.png`). sending the same layer again saves `logo_2.png`, so nothing is overwritten. save your after effects project before sending images. this also stops sent images going missing a day later, when the temporary link folder is cleared.
+- **Photoshop images save beside your work file.** Images sent from Photoshop now go in a folder named after the Photoshop file, next to your After Effects project, and each PNG is named after its layer (for example `Logo Design\Logo.png`). sending the same layer again saves `logo_2.png`, so nothing is overwritten. save your after effects project before sending images. this also stops sent images going missing a day later, when the temporary link folder is cleared.
 
 ## New in 1.4.1
 

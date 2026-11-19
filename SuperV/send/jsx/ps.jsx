@@ -19,6 +19,29 @@ function superv_send(enc) {
     function sid(s) { return stringIDToTypeID(s); }
     function cid(s) { return charIDToTypeID(s); }
 
+    /* Assets go in a folder named after the Photoshop file, next to it: D:\Designs\cde.psd -> D:\Designs\cde\Logo.png */
+    function safeName(s, fallback) {
+        var n = String(s || '').replace(/[\\\/:*?"<>|%~\u0000-\u001f]/g, '_').replace(/^[\s.]+|[\s.]+$/g, '').substring(0, 80).replace(/[\s.]+$/, '');
+        if (!n) n = fallback;
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(n)) n += '_';
+        return n;
+    }
+    var assets = null;
+    function assetFolder(doc) {
+        if (assets) return assets;
+        var home = null;
+        try { home = doc.path; } catch (eP) { home = null; }          /* an unsaved document has no path */
+        if (!home || !home.exists) { var eu = new Error('Save your Photoshop file first, then send.'); eu.user = true; throw eu; }
+        assets = new Folder(home.absoluteURI + '/' + File.encode(safeName(doc.name.replace(/\.[^.]+$/, ''), 'SuperV assets')));
+        if (!assets.exists && !assets.create()) throw new Error('Could not create the folder: ' + assets.fsName);
+        return assets;
+    }
+    function assetFile(doc, name) {                                    /* never overwrites: Logo.png, Logo_2.png, ... */
+        var dir = assetFolder(doc), stem = safeName(name, 'Layer'), n = 1, f;
+        do { f = new File(dir.absoluteURI + '/' + File.encode(stem + (n > 1 ? '_' + n : '') + '.png')); n++; } while (f.exists);
+        return f;
+    }
+
     var BLEND = {};
     (function () {
         var m = ['MULTIPLY', 'SCREEN', 'OVERLAY', 'SOFTLIGHT', 'HARDLIGHT', 'COLORDODGE', 'COLORBURN', 'DARKEN', 'LIGHTEN', 'DIFFERENCE', 'EXCLUSION', 'HUE', 'SATURATION', 'COLORBLEND', 'LUMINOSITY', 'LINEARDODGE', 'LINEARBURN', 'VIVIDLIGHT', 'LINEARLIGHT', 'PINLIGHT', 'HARDMIX', 'DISSOLVE'];
@@ -180,10 +203,10 @@ function superv_send(enc) {
                 skipped.push(ly.name + ' (adjustment layer)'); continue;
             }
             if (!rec) {
-                var f = new File(dir.fsName + '/layer_' + (n + 1) + '.png');
+                var f = assetFile(doc, ly.name);
                 var rc = exportLayer(doc, ly, f, W, H);
                 if (!rc) continue;
-                rec = { t: 'image', name: ly.name, file: f.name, x: rc.x, y: rc.y, w: rc.w, h: rc.h, opacity: r2(ly.opacity) };
+                rec = { t: 'image', name: ly.name, file: f.name, path: f.fsName, x: rc.x, y: rc.y, w: rc.w, h: rc.h, opacity: r2(ly.opacity) };
             }
             if (blend) rec.blend = blend;
             layers.push(rec); n++;
@@ -192,16 +215,16 @@ function superv_send(enc) {
 
         var title = picked.length === 1 ? first : doc.name.replace(/\.[^.]+$/, '') + ' (' + layers.length + ')';
         var df = new File(dir.fsName + '/data.json');
-        df.encoding = 'UTF-8'; df.open('w'); df.write(ser({ version: 1, app: 'PHXS', doc: doc.name.replace(/\.[^.]+$/, ''), width: W, height: H, layers: layers, skipped: skipped })); df.close();
+        df.encoding = 'UTF-8'; df.open('w'); df.write(ser({ version: 1, app: 'PHXS', doc: doc.name.replace(/\.[^.]+$/, ''), assets: assets ? assets.fsName : null, width: W, height: H, layers: layers, skipped: skipped })); df.close();
         var mf = new File(dir.fsName + '/manifest.tmp');
         mf.encoding = 'UTF-8'; mf.open('w');
         mf.write(ser({ id: o.id, app: 'PHXS', kind: 'vector', file: 'data.json', title: title, count: layers.length, width: W, height: H, time: (new Date()).getTime() }));
         mf.close();
         mf.rename('manifest.json');
-        return 'OK:' + encodeURIComponent('Sent ' + layers.length + ' layer' + (layers.length === 1 ? '' : 's') + ' to After Effects.' + (skipped.length ? ' (skipped: ' + skipped.join(', ') + ')' : ''));
+        return 'OK:' + encodeURIComponent('Sent ' + layers.length + ' layer' + (layers.length === 1 ? '' : 's') + ' to After Effects.' + (assets ? ' Assets saved in ' + assets.fsName + '.' : '') + (skipped.length ? ' (skipped: ' + skipped.join(', ') + ')' : ''));
     } catch (e) {
         try { if (job) { var bad = new Folder(job.base + '/transfers/' + job.id); if (bad.exists && !new File(bad.fsName + '/manifest.json').exists) purge(bad); } } catch (ignore0) {}
-        return err(String(e.message || e) + (e.line ? ' (line ' + e.line + ')' : ''));
+        return err(String(e.message || e) + (e.line && !e.user ? ' (line ' + e.line + ')' : ''));
     } finally {
         try { if (units !== null) app.preferences.rulerUnits = units; if (tunits !== null) app.preferences.typeUnits = tunits; if (dlg !== null) app.displayDialogs = dlg; } catch (ignore2) {}
     }
